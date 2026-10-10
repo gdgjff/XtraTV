@@ -140,6 +140,11 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         prefs = prefs()
         migrateSettings()
+        // Xtra TV: updates come from the gdgjff/XtraTV fork. Drop a saved link to the original
+        // project, which would otherwise download regular (phone) Xtra.
+        if (prefs.getString(C.UPDATE_URL, null)?.contains("crackededed/xtra", ignoreCase = true) == true) {
+            prefs.edit { remove(C.UPDATE_URL) }
+        }
         if (tokenPrefs().getLong(C.UPDATE_LAST_CHECKED, 0) <= 0L) {
             tokenPrefs().edit {
                 putLong(C.UPDATE_LAST_CHECKED, System.currentTimeMillis())
@@ -243,7 +248,7 @@ class MainActivity : AppCompatActivity() {
                                 ) {
                                     viewModel.checkUpdates(
                                         prefs.getString(C.NETWORK_LIBRARY, C.OKHTTP),
-                                        prefs.getString(C.UPDATE_URL, null) ?: "https://api.github.com/repos/crackededed/xtra/releases/tags/latest",
+                                        prefs.getString(C.UPDATE_URL, null) ?: "https://api.github.com/repos/gdgjff/XtraTV/releases/tags/latest",
                                         tokenPrefs().getLong(C.UPDATE_LAST_CHECKED, 0)
                                     )
                                 }
