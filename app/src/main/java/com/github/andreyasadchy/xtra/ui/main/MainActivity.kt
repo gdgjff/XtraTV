@@ -109,6 +109,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         const val KEY_VIDEO = "video"
 
+        private const val KEY_TV_APPBAR_LIFT_OFF = "tv_appbar_lift_off_done"
         const val INTENT_INSTALL_UPDATE = "com.github.andreyasadchy.xtra.INSTALL_UPDATE"
         const val INTENT_LIVE_NOTIFICATION = "com.github.andreyasadchy.xtra.LIVE_NOTIFICATION"
         const val INTENT_OPEN_DOWNLOADS_TAB = "com.github.andreyasadchy.xtra.OPEN_DOWNLOADS_TAB"
@@ -144,6 +145,14 @@ class MainActivity : AppCompatActivity() {
         // project, which would otherwise download regular (phone) Xtra.
         if (prefs.getString(C.UPDATE_URL, null)?.contains("crackededed/xtra", ignoreCase = true) == true) {
             prefs.edit { remove(C.UPDATE_URL) }
+        }
+        // Xtra TV: turn off "Lift app bar on scroll" once. On TV the top bar visibly darkens and
+        // brightens as lists scroll under it. It can be turned back on in Theme settings.
+        if (isTv() && !prefs.getBoolean(KEY_TV_APPBAR_LIFT_OFF, false)) {
+            prefs.edit {
+                putBoolean(C.UI_THEME_APPBAR_LIFT, false)
+                putBoolean(KEY_TV_APPBAR_LIFT_OFF, true)
+            }
         }
         if (tokenPrefs().getLong(C.UPDATE_LAST_CHECKED, 0) <= 0L) {
             tokenPrefs().edit {

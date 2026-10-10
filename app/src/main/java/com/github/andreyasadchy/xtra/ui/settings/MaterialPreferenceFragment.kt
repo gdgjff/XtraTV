@@ -1,5 +1,6 @@
 package com.github.andreyasadchy.xtra.ui.settings
 
+import androidx.preference.PreferenceScreen
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
@@ -49,9 +50,18 @@ abstract class MaterialPreferenceFragment : PreferenceFragmentCompat() {
         super.onViewCreated(view, savedInstanceState)
         listView?.applyTvRowHighlight() // TV: outline the setting the remote is on
         if (requireContext().isTv()) {
-            // Hide phone-only settings. Their values are unchanged, so behavior stays the same.
-            TV_HIDDEN_SETTINGS.forEach { findPreference<Preference>(it)?.isVisible = false }
+            // No slide/fade when settings are shown or hidden: changes appear instantly
+            listView?.itemAnimator = null
             setupTvDescriptions()
+        }
+    }
+
+    override fun setPreferenceScreen(preferenceScreen: PreferenceScreen?) {
+        super.setPreferenceScreen(preferenceScreen)
+        // TV: hide phone-only settings before the list is drawn, so they never appear and vanish.
+        // Their values are unchanged, so behavior stays the same.
+        if (context?.isTv() == true) {
+            TV_HIDDEN_SETTINGS.forEach { findPreference<Preference>(it)?.isVisible = false }
         }
     }
 
