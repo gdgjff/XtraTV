@@ -803,7 +803,7 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
                         (!TwitchApiHelper.getGQLHeaders(requireContext(), true)[C.HEADER_TOKEN].isNullOrBlank() ||
                                 !TwitchApiHelper.getHelixHeaders(requireContext())[C.HEADER_TOKEN].isNullOrBlank())
                     ) {
-                        if (requireContext().prefs().getBoolean(C.PLAYER_CHAT_BAR_TOGGLE, false) && !requireContext().prefs().getBoolean(C.CHAT_DISABLE, false)) {
+                        if (!tvMode && requireContext().prefs().getBoolean(C.PLAYER_CHAT_BAR_TOGGLE, false) && !requireContext().prefs().getBoolean(C.CHAT_DISABLE, false)) {
                             toggleChatInput.visibility = View.VISIBLE
                             toggleChatInput.setOnClickListener {
                                 showController(force = true)
@@ -2391,6 +2391,9 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
 
     private fun setupTvNavigation() {
         with(binding) {
+            // Chat is view-only on TV: the remote never moves into it, so it can't hijack navigation
+            chatFragmentContainer.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+            chatFragmentContainer.isFocusable = false
             // The mini player can be selected with the remote: OK opens it full screen, holding OK closes it.
             dragView.setBackgroundResource(R.drawable.tv_mini_player_focus)
             dragView.setOnClickListener {

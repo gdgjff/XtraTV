@@ -33,4 +33,29 @@
         <item name="materialThemeOverlay">@style/CardOverlayAmoled</item>
         <item name="android:layout_margin">6dp</item>
     </style>
+
+    <!-- Radio buttons and checkboxes in dialogs: outline the one the remote is on -->
+    <style name="RadioButton" parent="Widget.Material3.CompoundButton.RadioButton">
+        <item name="android:padding">10dp</item>
+        <item name="android:background">@drawable/tv_focus_ring</item>
+    </style>
+
+    <style name="CompactRadioButton" parent="Widget.Material3.CompoundButton.RadioButton">
+        <item name="android:padding">10dp</item>
+        <item name="android:minWidth">24dp</item>
+        <item name="android:minHeight">24dp</item>
+        <item name="android:background">@drawable/tv_focus_ring</item>
+    </style>
+
+    <style name="CheckBox" parent="Widget.Material3.CompoundButton.CheckBox">
+        <item name="android:padding">10dp</item>
+        <item name="android:background">@drawable/tv_focus_ring</item>
+    </style>
+
+    <style name="CompactCheckBox" parent="Widget.Material3.CompoundButton.CheckBox">
+        <item name="android:padding">10dp</item>
+        <item name="android:minWidth">24dp</item>
+        <item name="android:minHeight">24dp</item>
+        <item name="android:background">@drawable/tv_focus_ring</item>
+    </style>
 </resources>

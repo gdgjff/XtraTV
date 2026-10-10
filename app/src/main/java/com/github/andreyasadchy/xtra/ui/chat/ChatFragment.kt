@@ -51,6 +51,7 @@ import com.github.andreyasadchy.xtra.ui.view.AutoCompleteAdapter
 import com.github.andreyasadchy.xtra.util.C
 import com.github.andreyasadchy.xtra.util.TwitchApiHelper
 import com.github.andreyasadchy.xtra.util.getAlertDialogBuilder
+import com.github.andreyasadchy.xtra.util.isTv
 import com.github.andreyasadchy.xtra.util.prefs
 import com.github.andreyasadchy.xtra.util.reduceDragSensitivity
 import com.github.andreyasadchy.xtra.util.tokenPrefs
@@ -287,7 +288,7 @@ class ChatFragment : BaseNetworkFragment(), MessageClickedDialog.OnButtonClickLi
                         }
                         replyView.visibility = View.GONE
                         send.setOnClickListener { sendMessage() }
-                        if ((view.parent?.parent?.parent?.parent as? View)?.id == R.id.slidingLayout && !requireContext().prefs().getBoolean(C.KEY_CHAT_BAR_VISIBLE, true)) {
+                        if (requireContext().isTv() || (view.parent?.parent?.parent?.parent as? View)?.id == R.id.slidingLayout && !requireContext().prefs().getBoolean(C.KEY_CHAT_BAR_VISIBLE, true)) { // TV: chat is read-only, no message box
                             messageView.visibility = View.GONE
                         } else {
                             messageView.visibility = View.VISIBLE

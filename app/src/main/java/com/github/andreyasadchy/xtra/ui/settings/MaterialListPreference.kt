@@ -1,5 +1,6 @@
 package com.github.andreyasadchy.xtra.ui.settings
 
+import com.github.andreyasadchy.xtra.util.applyTvListHighlight
 import android.app.Dialog
 import android.content.DialogInterface
 import android.os.Bundle
@@ -35,5 +36,10 @@ class MaterialListPreference : ListPreferenceDialogFragmentCompat() {
     override fun onDismiss(dialog: DialogInterface) {
         super.onDismiss(dialog)
         onDialogClosed(mWhichButtonClicked == DialogInterface.BUTTON_POSITIVE)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        dialog?.applyTvListHighlight()
     }
 }

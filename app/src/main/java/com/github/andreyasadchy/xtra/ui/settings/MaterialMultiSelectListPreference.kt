@@ -1,5 +1,6 @@
 package com.github.andreyasadchy.xtra.ui.settings
 
+import com.github.andreyasadchy.xtra.util.applyTvListHighlight
 import android.app.Dialog
 import android.os.Bundle
 import androidx.preference.MultiSelectListPreferenceDialogFragmentCompat
@@ -23,5 +24,10 @@ class MaterialMultiSelectListPreference : MultiSelectListPreferenceDialogFragmen
         }
         onPrepareDialogBuilder(builder)
         return builder.create()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        dialog?.applyTvListHighlight()
     }
 }
