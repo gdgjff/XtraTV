@@ -1,5 +1,8 @@
 package com.github.andreyasadchy.xtra.ui.following.streams
 
+import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.common.util.UnstableApi
+import androidx.annotation.OptIn
 import com.github.andreyasadchy.xtra.ui.main.MainActivity
 import kotlinx.coroutines.Job
 import androidx.media3.exoplayer.ExoPlayer
@@ -96,7 +99,6 @@ class FollowedStreamsFragment : PagedListFragment(), Scrollable {
                     var lastFetchedId: String? = null
                     var lastFetchTime = 0L
                     var seconds = 0
-                    var previewCandidateId: String? = null
                     try {
                     while (true) {
                         delay(1.seconds)
@@ -111,17 +113,13 @@ class FollowedStreamsFragment : PagedListFragment(), Scrollable {
                         val holder = recyclerView.focusedChild?.let { recyclerView.getChildViewHolder(it) } as? TvStreamsAdapter.PagingViewHolder
                         val item = holder?.currentItem
                         if (holder == null || item == null) {
-                            previewCandidateId = null
                             continue
                         }
                         holder.updateInfo(item)
-                        // Live preview: start once the same card has stayed selected for a moment
+                        // Live preview fallback (e.g. back from the background with a card still selected).
+                        // Normally the preview starts from the focus listener as soon as a card is selected.
                         if (previewHolder == null && previewEnabled()) {
-                            if (previewCandidateId == item.id) {
-                                startPreview(holder, item)
-                            } else {
-                                previewCandidateId = item.id
-                            }
+                            startPreview(holder, item)
                         }
                         val now = SystemClock.elapsedRealtime()
                         if (item.id != lastFetchedId || now - lastFetchTime >= 30_000L) {
@@ -186,11 +184,19 @@ class FollowedStreamsFragment : PagedListFragment(), Scrollable {
     private var previewPlayer: ExoPlayer? = null
     private var previewHolder: TvStreamsAdapter.PagingViewHolder? = null
     private var previewJob: Job? = null
+    /** Stream whose preview just failed (e.g. went offline), so it isn't retried over and over. */
+    private var previewFailedId: String? = null
 
     /** Stops the preview as soon as the selection leaves the card that is playing. */
     private val previewFocusListener = ViewTreeObserver.OnGlobalFocusChangeListener { _, newFocus ->
         if (previewHolder != null && newFocus !== previewHolder?.itemView) {
             stopPreview()
+        }
+        // Start loading the preview of the newly selected card right away
+        val recyclerView = _binding?.recyclerView
+        if (recyclerView != null && newFocus != null && newFocus.parent === recyclerView && previewHolder == null && isAdded && previewEnabled()) {
+            val holder = recyclerView.getChildViewHolder(newFocus) as? TvStreamsAdapter.PagingViewHolder
+            holder?.currentItem?.let { startPreview(holder, it) }
         }
     }
 
@@ -200,17 +206,33 @@ class FollowedStreamsFragment : PagedListFragment(), Scrollable {
                 (activity as? MainActivity)?.playerFragment == null
     }
 
+    @OptIn(UnstableApi::class)
     private fun startPreview(holder: TvStreamsAdapter.PagingViewHolder, item: Stream) {
         val channelLogin = item.channelLogin ?: return
+        if (item.id != null && item.id == previewFailedId) return
         previewHolder = holder
         previewJob = viewLifecycleOwner.lifecycleScope.launch {
+            val requestedAt = SystemClock.elapsedRealtime()
+            // The video address is fetched while we wait, so cards you only pass over cost nothing visible
             val url = viewModel.loadPreviewUrl(channelLogin)
+            val wait = PREVIEW_DELAY_MS - (SystemClock.elapsedRealtime() - requestedAt)
+            if (wait > 0) {
+                delay(wait)
+            }
             if (previewHolder !== holder || holder.currentItem !== item) return@launch
             if (url == null) {
+                previewFailedId = item.id
                 stopPreview()
                 return@launch
             }
-            val player = previewPlayer ?: ExoPlayer.Builder(requireContext()).build().apply {
+            val player = previewPlayer ?: ExoPlayer.Builder(requireContext())
+                // Start showing video after 0.5 s of buffer instead of the default 2.5 s
+                .setLoadControl(
+                    DefaultLoadControl.Builder()
+                        .setBufferDurationsMs(1500, 5000, 500, 1000)
+                        .build()
+                )
+                .build().apply {
                 // A small card doesn't need more than 480p
                 trackSelectionParameters = trackSelectionParameters.buildUpon().setMaxVideoSize(854, 480).build()
                 addListener(object : Player.Listener {
@@ -219,6 +241,7 @@ class FollowedStreamsFragment : PagedListFragment(), Scrollable {
                     }
 
                     override fun onPlayerError(error: PlaybackException) {
+                        previewFailedId = previewHolder?.currentItem?.id
                         stopPreview()
                     }
                 })
@@ -255,5 +278,7 @@ class FollowedStreamsFragment : PagedListFragment(), Scrollable {
     companion object {
         private const val KEY_LIVE_PREVIEW = "tv_live_preview"
         private const val KEY_LIVE_PREVIEW_SOUND = "tv_live_preview_sound"
+        /** Card must stay selected this long before the preview plays (skips cards you only pass over). */
+        private const val PREVIEW_DELAY_MS = 300L
     }
 }

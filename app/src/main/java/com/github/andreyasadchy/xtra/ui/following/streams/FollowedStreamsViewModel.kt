@@ -1,5 +1,6 @@
 package com.github.andreyasadchy.xtra.ui.following.streams
 
+import android.os.SystemClock
 import com.github.andreyasadchy.xtra.repository.PlayerRepository
 import android.content.Context
 import androidx.lifecycle.ViewModel
@@ -51,6 +52,10 @@ class FollowedStreamsViewModel(
 
     /** TV: video address of a live stream for the preview (H.264 only, the lightest to decode). */
     suspend fun loadPreviewUrl(channelLogin: String): String? {
+        // Reuse a recent address so going back to a stream starts faster
+        previewUrls[channelLogin]?.let { (url, time) ->
+            if (SystemClock.elapsedRealtime() - time < PREVIEW_URL_VALID_MS) return url
+        }
         return try {
             val prefs = appContext.prefs()
             playerRepository.loadStreamPlaylistUrl(
@@ -68,11 +73,13 @@ class FollowedStreamsViewModel(
                 proxyPassword = null,
                 proxyTimeout = null,
                 enableIntegrity = false,
-            )
+            ).also { previewUrls[channelLogin] = it to SystemClock.elapsedRealtime() }
         } catch (e: Exception) {
             null
         }
     }
+
+    private val previewUrls = HashMap<String, Pair<String, Long>>()
 
     /** TV: current viewer count and start time of one stream, for the selected card. Null if it fails. */
     suspend fun loadLiveInfo(channelId: String?, channelLogin: String?): Pair<Int?, String?>? {
@@ -90,6 +97,8 @@ class FollowedStreamsViewModel(
     }
 
     companion object {
+        private const val PREVIEW_URL_VALID_MS = 3 * 60_000L
+
         val FollowedStreamsViewModelFactory = viewModelFactory {
             initializer {
                 val application = (this[APPLICATION_KEY] as XtraApp)
