@@ -66,3 +66,19 @@ fun RecyclerView.applyTvRowHighlight() {
         override fun onChildViewDetachedFromWindow(view: View) {}
     })
 }
+
+/**
+ * TV: settings choice pop-ups use rows that take the remote's focus themselves (and outline themselves,
+ * like the player buttons). Put the focus on the current choice when the pop-up opens.
+ */
+fun Dialog.focusTvChoice(position: Int) {
+    val list = (this as? androidx.appcompat.app.AlertDialog)?.listView ?: return
+    list.itemsCanFocus = true
+    list.post {
+        val target = position.coerceAtLeast(0)
+        list.setSelection(target)
+        list.post {
+            (list.getChildAt(target - list.firstVisiblePosition) ?: list.getChildAt(0))?.requestFocus()
+        }
+    }
+}
