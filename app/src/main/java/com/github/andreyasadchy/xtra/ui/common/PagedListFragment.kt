@@ -25,7 +25,8 @@ abstract class PagedListFragment : BaseNetworkFragment(), IntegrityDialog.Listen
                 adapter.registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
                     override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
                         try {
-                            if (positionStart == 0) {
+                            // Don't jump to the top while the remote's selection is in the list (TV auto-refresh)
+                            if (positionStart == 0 && !recyclerView.hasFocus()) {
                                 recyclerView.scrollToPosition(0)
                             }
                         } catch (e: Exception) {

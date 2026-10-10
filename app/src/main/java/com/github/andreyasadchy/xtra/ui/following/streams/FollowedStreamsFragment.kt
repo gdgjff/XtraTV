@@ -1,5 +1,8 @@
 package com.github.andreyasadchy.xtra.ui.following.streams
 
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.delay
+import androidx.recyclerview.widget.SimpleItemAnimator
 import android.graphics.Color
 import androidx.recyclerview.widget.GridLayoutManager
 import com.github.andreyasadchy.xtra.util.isTv
@@ -73,6 +76,24 @@ class FollowedStreamsFragment : PagedListFragment(), Scrollable {
             // Like SmartTwitchTV: black background, 3 streams per row
             binding.recyclerView.setBackgroundColor(Color.BLACK)
             (binding.recyclerView.layoutManager as? GridLayoutManager)?.spanCount = 3
+            // Updated cards are redrawn in place (no fade), so the selected card keeps the selection
+            (binding.recyclerView.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
+            // Live info: uptime counts every second; the list (viewer counts, new live channels)
+            // is refreshed from Twitch every minute, which is how often Twitch updates viewer counts.
+            viewLifecycleOwner.lifecycleScope.launch {
+                viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                    var seconds = 0
+                    while (true) {
+                        delay(1.seconds)
+                        seconds++
+                        if (seconds % 60 == 0) {
+                            pagingAdapter.refresh()
+                        } else {
+                            (pagingAdapter as? TvStreamsAdapter)?.tick()
+                        }
+                    }
+                }
+            }
         }
         ViewCompat.setOnApplyWindowInsetsListener(view) { _, windowInsets ->
             if (activity?.findViewById<LinearLayout>(R.id.navBarContainer)?.isVisible == false) {
@@ -91,7 +112,7 @@ class FollowedStreamsFragment : PagedListFragment(), Scrollable {
                 }
             }
         }
-        initializeAdapter(binding, pagingAdapter, enableScrollTopButton = false)
+        initializeAdapter(binding, pagingAdapter, enableSwipeRefresh = !requireContext().isTv(), enableScrollTopButton = false) // TV: refresh quietly, no spinner
     }
 
     override fun scrollToTop() {

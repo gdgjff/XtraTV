@@ -51,6 +51,25 @@ class TvStreamsAdapter(
         holder.bind(getItem(position))
     }
 
+    override fun onBindViewHolder(holder: PagingViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isNotEmpty() && payloads.all { it == PAYLOAD_TICK }) {
+            getItem(position)?.let { holder.updateInfo(it) }
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
+    }
+
+    /** Re-draws the uptime of every visible card, without rebinding them (keeps the selection). */
+    fun tick() {
+        if (itemCount > 0) {
+            notifyItemRangeChanged(0, itemCount, PAYLOAD_TICK)
+        }
+    }
+
+    companion object {
+        private const val PAYLOAD_TICK = "tick"
+    }
+
     inner class PagingViewHolder(
         private val binding: TvStreamsListItemBinding,
     ) : RecyclerView.ViewHolder(binding.root) {
@@ -92,6 +111,30 @@ class TvStreamsAdapter(
                 } else {
                     gameName.visibility = View.GONE
                 }
+                updateInfo(item)
+                if (item.thumbnailURL != null) {
+                    // refresh the thumbnail every 5 minutes
+                    val minutes = System.currentTimeMillis() / 60000L
+                    val lastMinute = minutes % 10
+                    val key = if (lastMinute < 5) minutes - lastMinute else minutes - (lastMinute - 5)
+                    context.imageLoader.enqueue(
+                        ImageRequest.Builder(context).apply {
+                            data(item.thumbnail)
+                            memoryCacheKeyExtra("minutes", key.toString())
+                            diskCachePolicy(CachePolicy.DISABLED)
+                            crossfade(true)
+                            target(thumbnail)
+                        }.build()
+                    )
+                } else {
+                    thumbnail.setImageDrawable(null)
+                }
+            }
+        }
+
+        fun updateInfo(item: Stream) {
+            with(binding) {
+                val context = fragment.requireContext()
                 val uptimeText = item.createdAt?.let {
                     Instant.parseOrNull(it)?.takeIf { time -> time.toEpochMilliseconds() > 0 }?.let { createdAt ->
                         val uptime = Clock.System.now() - createdAt
@@ -112,23 +155,6 @@ class TvStreamsAdapter(
                     else -> null
                 }
                 info.visibility = if (info.text.isNullOrEmpty()) View.GONE else View.VISIBLE
-                if (item.thumbnailURL != null) {
-                    // refresh the thumbnail every 5 minutes
-                    val minutes = System.currentTimeMillis() / 60000L
-                    val lastMinute = minutes % 10
-                    val key = if (lastMinute < 5) minutes - lastMinute else minutes - (lastMinute - 5)
-                    context.imageLoader.enqueue(
-                        ImageRequest.Builder(context).apply {
-                            data(item.thumbnail)
-                            memoryCacheKeyExtra("minutes", key.toString())
-                            diskCachePolicy(CachePolicy.DISABLED)
-                            crossfade(true)
-                            target(thumbnail)
-                        }.build()
-                    )
-                } else {
-                    thumbnail.setImageDrawable(null)
-                }
             }
         }
     }
