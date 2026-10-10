@@ -24,12 +24,33 @@ import com.github.andreyasadchy.xtra.util.prefs
 
 private const val KEY_TV_HOLD_TIP_SHOWN = "tv_settings_hold_tip_shown"
 
+/** Settings that only matter on phones (notches, portrait, mobile data, touch, screen lock). */
+private val TV_HIDDEN_SETTINGS = listOf(
+    "ui_draw_behind_cutouts", // camera notch
+    "columnsPortrait", // TV is always landscape
+    "player_rounded_corner_padding", // rounded screen corners
+    "player_default_cellular_quality", // mobile data
+    "download_wifi_only", // mobile data
+    "player_doubletap", // touch gesture
+    "player_move_freely", // dragging the mini player by touch
+    "player_chatbartoggle", // chat input (view-only on TV)
+    "player_menu_chat_bar", // chat input (view-only on TV)
+    "player_volumebutton", // volume button is hidden on TV; the remote controls volume
+    "sleep_timer_lock", // locking the phone after the sleep timer
+    "admin_settings", // device admin, only needed for the above
+    "player_background_audio_locked", // phone screen lock
+    "player_background_audio_pip_locked", // phone screen lock
+    "player_show_stream_notification_seekbar", // phone media notification
+)
+
 abstract class MaterialPreferenceFragment : PreferenceFragmentCompat() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         listView?.applyTvRowHighlight() // TV: outline the setting the remote is on
         if (requireContext().isTv()) {
+            // Hide phone-only settings. Their values are unchanged, so behavior stays the same.
+            TV_HIDDEN_SETTINGS.forEach { findPreference<Preference>(it)?.isVisible = false }
             setupTvDescriptions()
         }
     }

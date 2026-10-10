@@ -1,5 +1,6 @@
 package com.github.andreyasadchy.xtra.ui.player
 
+import com.github.andreyasadchy.xtra.util.isTv
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -91,7 +92,7 @@ class PlayerSettingsDialog : BottomSheetDialogFragment() {
                     val isLoggedIn = !requireContext().tokenPrefs().getString(C.USERNAME, null).isNullOrBlank() &&
                             (!TwitchApiHelper.getGQLHeaders(requireContext(), true)[C.HEADER_TOKEN].isNullOrBlank() ||
                                     !TwitchApiHelper.getHelixHeaders(requireContext())[C.HEADER_TOKEN].isNullOrBlank())
-                    if (isLoggedIn && requireContext().prefs().getBoolean(C.PLAYER_MENU_CHAT_BAR, true)) {
+                    if (isLoggedIn && !requireContext().isTv() && requireContext().prefs().getBoolean(C.PLAYER_MENU_CHAT_BAR, true)) { // TV: chat is view-only
                         menuChatBar.visibility = View.VISIBLE
                         if (requireContext().prefs().getBoolean(C.KEY_CHAT_BAR_VISIBLE, true)) {
                             menuChatBar.text = getString(R.string.hide_chat_bar)
