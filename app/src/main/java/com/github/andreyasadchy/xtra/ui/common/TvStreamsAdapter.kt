@@ -51,29 +51,15 @@ class TvStreamsAdapter(
         holder.bind(getItem(position))
     }
 
-    override fun onBindViewHolder(holder: PagingViewHolder, position: Int, payloads: MutableList<Any>) {
-        if (payloads.isNotEmpty() && payloads.all { it == PAYLOAD_TICK }) {
-            getItem(position)?.let { holder.updateInfo(it) }
-        } else {
-            super.onBindViewHolder(holder, position, payloads)
-        }
-    }
-
-    /** Re-draws the uptime of every visible card, without rebinding them (keeps the selection). */
-    fun tick() {
-        if (itemCount > 0) {
-            notifyItemRangeChanged(0, itemCount, PAYLOAD_TICK)
-        }
-    }
-
-    companion object {
-        private const val PAYLOAD_TICK = "tick"
-    }
-
     inner class PagingViewHolder(
         private val binding: TvStreamsListItemBinding,
     ) : RecyclerView.ViewHolder(binding.root) {
+        /** The stream shown on this card, used to update the selected card live. */
+        var currentItem: Stream? = null
+            private set
+
         fun bind(item: Stream?) {
+            currentItem = item
             with(binding) {
                 if (item == null) return
                 val context = fragment.requireContext()

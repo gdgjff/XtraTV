@@ -1,5 +1,6 @@
 package com.github.andreyasadchy.xtra.ui.following.streams
 
+import android.os.SystemClock
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
 import androidx.recyclerview.widget.SimpleItemAnimator
@@ -78,18 +79,40 @@ class FollowedStreamsFragment : PagedListFragment(), Scrollable {
             (binding.recyclerView.layoutManager as? GridLayoutManager)?.spanCount = 3
             // Updated cards are redrawn in place (no fade), so the selected card keeps the selection
             (binding.recyclerView.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
-            // Live info: uptime counts every second; the list (viewer counts, new live channels)
-            // is refreshed from Twitch every minute, which is how often Twitch updates viewer counts.
+            // Live info on the selected card only: its uptime counts every second, and its viewer
+            // count is fetched from Twitch when selected and every 30 seconds while it stays selected.
+            // Other cards are left as they are while you browse.
             viewLifecycleOwner.lifecycleScope.launch {
                 viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                    var lastFetchedId: String? = null
+                    var lastFetchTime = 0L
                     var seconds = 0
                     while (true) {
                         delay(1.seconds)
                         seconds++
-                        if (seconds % 60 == 0) {
+                        val recyclerView = _binding?.recyclerView ?: continue
+                        // While you're not browsing the list (e.g. watching a stream), reload it every minute
+                        // so newly live channels show up. Never while the remote is in the list.
+                        if (seconds % 60 == 0 && !recyclerView.hasFocus()) {
                             pagingAdapter.refresh()
-                        } else {
-                            (pagingAdapter as? TvStreamsAdapter)?.tick()
+                            continue
+                        }
+                        val holder = recyclerView.focusedChild?.let { recyclerView.getChildViewHolder(it) } as? TvStreamsAdapter.PagingViewHolder
+                        val item = holder?.currentItem ?: continue
+                        holder.updateInfo(item)
+                        val now = SystemClock.elapsedRealtime()
+                        if (item.id != lastFetchedId || now - lastFetchTime >= 30_000L) {
+                            lastFetchedId = item.id
+                            lastFetchTime = now
+                            launch {
+                                viewModel.loadLiveInfo(item.channelId, item.channelLogin)?.let { (viewers, startedAt) ->
+                                    viewers?.let { item.viewerCount = it }
+                                    startedAt?.let { item.createdAt = it }
+                                    if (holder.currentItem === item) {
+                                        holder.updateInfo(item)
+                                    }
+                                }
+                            }
                         }
                     }
                 }

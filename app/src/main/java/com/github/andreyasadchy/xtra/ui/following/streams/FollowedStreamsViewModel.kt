@@ -45,6 +45,23 @@ class FollowedStreamsViewModel(
         )
     }.flow.cachedIn(viewModelScope)
 
+    private val appContext = applicationContext
+
+    /** TV: current viewer count and start time of one stream, for the selected card. Null if it fails. */
+    suspend fun loadLiveInfo(channelId: String?, channelLogin: String?): Pair<Int?, String?>? {
+        return try {
+            val response = graphQLRepository.loadQueryUsersStream(
+                networkLibrary = appContext.prefs().getString(C.NETWORK_LIBRARY, C.OKHTTP),
+                headers = TwitchApiHelper.getGQLHeaders(appContext, true),
+                ids = channelId?.let { listOf(it) },
+                logins = if (channelId.isNullOrBlank()) channelLogin?.let { listOf(it) } else null,
+            )
+            response.data?.users?.firstOrNull()?.stream?.let { it.viewersCount to it.createdAt?.toString() }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     companion object {
         val FollowedStreamsViewModelFactory = viewModelFactory {
             initializer {
