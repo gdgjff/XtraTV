@@ -1014,8 +1014,11 @@ class MainActivity : AppCompatActivity() {
      * Android TV: while the player is full screen, stop the remote's selection from wandering onto
      * the lists and tabs hidden behind it. When it closes or shrinks, put the selection back where it was.
      */
-    fun setMainContentFocusBlocked(blocked: Boolean, restoreFocus: Boolean = false) {
+    fun setMainContentFocusBlocked(blocked: Boolean, restoreFocus: Boolean = false, caller: Fragment? = null) {
         if (!tvMode || !::binding.isInitialized) return
+        // When one stream replaces another, the old player shuts down after the new one has started.
+        // Ignore it, otherwise it would unlock the list behind the new player.
+        if (caller != null && playerFragment != null && caller !== playerFragment) return
         val mainViews = listOf<ViewGroup>(binding.navHostFragment, binding.navBarContainer)
         if (blocked) {
             val focused = mainViews.firstNotNullOfOrNull { it.findFocus() }
@@ -1062,6 +1065,7 @@ class MainActivity : AppCompatActivity() {
             .commit()
         playerFragment = null
         viewModel.isPlayerOpened = false
+        setMainContentFocusBlocked(blocked = false, restoreFocus = true)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) {
             setPictureInPictureParams(PictureInPictureParams.Builder().setAutoEnterEnabled(false).build())
         }

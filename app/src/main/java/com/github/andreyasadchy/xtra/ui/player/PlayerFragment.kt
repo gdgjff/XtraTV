@@ -2381,7 +2381,7 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
 
     override fun onDestroyView() {
         if (tvMode) {
-            (activity as? MainActivity)?.setMainContentFocusBlocked(blocked = false, restoreFocus = true)
+            (activity as? MainActivity)?.setMainContentFocusBlocked(blocked = false, restoreFocus = true, caller = this)
         }
         super.onDestroyView()
         _binding = null
@@ -2422,7 +2422,17 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
         // setOnClickListener makes the view focusable automatically, so set it explicitly:
         // only the mini player should be selectable, never the full-screen overlay.
         binding.dragView.isFocusable = !isMaximized
-        (activity as? MainActivity)?.setMainContentFocusBlocked(blocked = isMaximized, restoreFocus = !isMaximized)
+        (activity as? MainActivity)?.setMainContentFocusBlocked(blocked = isMaximized, restoreFocus = !isMaximized, caller = this)
+    }
+
+    private fun isInPlayer(view: View): Boolean {
+        val root = _binding?.root ?: return false
+        var current: View? = view
+        while (current != null) {
+            if (current === root) return true
+            current = current.parent as? View
+        }
+        return false
     }
 
     private fun showTvController() {
@@ -2458,6 +2468,22 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
             return false
         }
         if (event.action != KeyEvent.ACTION_DOWN || !isMaximized || isAnimating) return false
+        when (event.keyCode) {
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER,
+            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                // Safety net: while the player is full screen, the selection must be inside it.
+                // If it isn't (e.g. it's stuck on a card behind the player), never let the key through;
+                // re-lock the screen behind and move the selection onto the player controls instead.
+                if (binding.root.findFocus() == null && binding.playerControls.root.isVisible || activity?.currentFocus?.let { !isInPlayer(it) } == true) {
+                    (activity as? MainActivity)?.setMainContentFocusBlocked(blocked = true, caller = this)
+                    if (event.repeatCount == 0) {
+                        showTvController()
+                    }
+                    tvConsumedKeyCode = event.keyCode
+                    return true
+                }
+            }
+        }
         val controlsVisible = binding.playerControls.root.isVisible
         val consumed = when (event.keyCode) {
             KeyEvent.KEYCODE_BACK -> {
