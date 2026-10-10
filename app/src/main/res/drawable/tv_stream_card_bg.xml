@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SmartTwitchTV-style live card: black, with a light grey border when selected with the remote. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#FF000000" />
+            <stroke android:width="2dp" android:color="#FFEBEBEB" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#FF000000" />
+            <stroke android:width="2dp" android:color="#00000000" />
+        </shape>
+    </item>
+</selector>

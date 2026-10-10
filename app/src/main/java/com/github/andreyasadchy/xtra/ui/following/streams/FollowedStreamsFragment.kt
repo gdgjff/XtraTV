@@ -1,5 +1,8 @@
 package com.github.andreyasadchy.xtra.ui.following.streams
 
+import android.graphics.Color
+import androidx.recyclerview.widget.GridLayoutManager
+import com.github.andreyasadchy.xtra.util.isTv
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -22,6 +25,7 @@ import com.github.andreyasadchy.xtra.model.ui.Stream
 import com.github.andreyasadchy.xtra.ui.common.PagedListFragment
 import com.github.andreyasadchy.xtra.ui.common.Scrollable
 import com.github.andreyasadchy.xtra.ui.common.StreamsAdapter
+import com.github.andreyasadchy.xtra.ui.common.TvStreamsAdapter
 import com.github.andreyasadchy.xtra.ui.common.StreamsCompactAdapter
 import com.github.andreyasadchy.xtra.ui.following.streams.FollowedStreamsViewModel.Companion.FollowedStreamsViewModelFactory
 import com.github.andreyasadchy.xtra.ui.top.TopStreamsFragmentDirections
@@ -44,7 +48,10 @@ class FollowedStreamsFragment : PagedListFragment(), Scrollable {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        pagingAdapter = if (requireContext().prefs().getString(C.COMPACT_STREAMS, "disabled") != "disabled") {
+        val tv = requireContext().isTv()
+        pagingAdapter = if (tv) {
+            TvStreamsAdapter(this) // SmartTwitchTV-style cards
+        } else if (requireContext().prefs().getString(C.COMPACT_STREAMS, "disabled") != "disabled") {
             StreamsCompactAdapter(this, {
                 findNavController().navigate(
                     TopStreamsFragmentDirections.actionGlobalTopFragment(
@@ -62,6 +69,11 @@ class FollowedStreamsFragment : PagedListFragment(), Scrollable {
             })
         }
         setAdapter(binding.recyclerView, pagingAdapter)
+        if (tv) {
+            // Like SmartTwitchTV: black background, 3 streams per row
+            binding.recyclerView.setBackgroundColor(Color.BLACK)
+            (binding.recyclerView.layoutManager as? GridLayoutManager)?.spanCount = 3
+        }
         ViewCompat.setOnApplyWindowInsetsListener(view) { _, windowInsets ->
             if (activity?.findViewById<LinearLayout>(R.id.navBarContainer)?.isVisible == false) {
                 val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
