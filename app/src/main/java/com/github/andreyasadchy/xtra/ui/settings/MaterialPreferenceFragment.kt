@@ -25,6 +25,9 @@ import com.github.andreyasadchy.xtra.util.prefs
 
 private const val KEY_TV_HOLD_TIP_SHOWN = "tv_settings_hold_tip_shown"
 
+/** Settings that only exist on the Android TV version. */
+private val TV_ONLY_SETTINGS = listOf("tv_live_preview", "tv_live_preview_sound")
+
 /** Settings that only matter on phones (notches, portrait, mobile data, touch, screen lock). */
 private val TV_HIDDEN_SETTINGS = listOf(
     "ui_draw_behind_cutouts", // camera notch
@@ -62,6 +65,8 @@ abstract class MaterialPreferenceFragment : PreferenceFragmentCompat() {
         // Their values are unchanged, so behavior stays the same.
         if (context?.isTv() == true) {
             TV_HIDDEN_SETTINGS.forEach { findPreference<Preference>(it)?.isVisible = false }
+        } else {
+            TV_ONLY_SETTINGS.forEach { findPreference<Preference>(it)?.isVisible = false }
         }
     }
 

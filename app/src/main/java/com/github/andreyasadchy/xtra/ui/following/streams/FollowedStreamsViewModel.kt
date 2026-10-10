@@ -1,5 +1,6 @@
 package com.github.andreyasadchy.xtra.ui.following.streams
 
+import com.github.andreyasadchy.xtra.repository.PlayerRepository
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -24,6 +25,7 @@ class FollowedStreamsViewModel(
     private val localChannelFollowsRepository: LocalChannelFollowsRepository,
     private val graphQLRepository: GraphQLRepository,
     private val helixRepository: HelixRepository,
+    private val playerRepository: PlayerRepository,
 ) : ViewModel() {
 
     val flow = Pager(
@@ -47,6 +49,31 @@ class FollowedStreamsViewModel(
 
     private val appContext = applicationContext
 
+    /** TV: video address of a live stream for the preview (H.264 only, the lightest to decode). */
+    suspend fun loadPreviewUrl(channelLogin: String): String? {
+        return try {
+            val prefs = appContext.prefs()
+            playerRepository.loadStreamPlaylistUrl(
+                context = appContext,
+                networkLibrary = prefs.getString(C.NETWORK_LIBRARY, C.OKHTTP),
+                gqlHeaders = TwitchApiHelper.getGQLHeaders(appContext, prefs.getBoolean(C.TOKEN_INCLUDE_TOKEN_STREAM, true)),
+                channelLogin = channelLogin,
+                platform = prefs.getString(C.TOKEN_PLATFORM, "web"),
+                playerType = prefs.getString(C.TOKEN_PLAYER_TYPE, "site"),
+                supportedCodecs = "h264",
+                proxyPlaybackAccessToken = false,
+                proxyHost = null,
+                proxyPort = null,
+                proxyUser = null,
+                proxyPassword = null,
+                proxyTimeout = null,
+                enableIntegrity = false,
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     /** TV: current viewer count and start time of one stream, for the selected card. Null if it fails. */
     suspend fun loadLiveInfo(channelId: String?, channelLogin: String?): Pair<Int?, String?>? {
         return try {
@@ -67,7 +94,7 @@ class FollowedStreamsViewModel(
             initializer {
                 val application = (this[APPLICATION_KEY] as XtraApp)
                 val xtraModule = application.xtraModule
-                FollowedStreamsViewModel(application.applicationContext, xtraModule.localChannelFollowsRepository, xtraModule.graphQLRepository, xtraModule.helixRepository)
+                FollowedStreamsViewModel(application.applicationContext, xtraModule.localChannelFollowsRepository, xtraModule.graphQLRepository, xtraModule.helixRepository, xtraModule.playerRepository)
             }
         }
     }

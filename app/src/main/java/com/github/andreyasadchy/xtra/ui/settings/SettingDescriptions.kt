@@ -62,6 +62,8 @@ object SettingDescriptions {
         "ui_channel_tabs_dialog" to "Choose and reorder the tabs on a channel's page (videos, clips, about...).",
         "ui_game_tabs_dialog" to "Choose and reorder the tabs on a game's page (streams, videos, clips).",
         "ui_search_tabs_dialog" to "Choose and reorder the tabs on the Search page.",
+        "tv_live_preview" to "On the Following live screen, the stream you stay on for a second starts playing inside its card (up to 480p). Moving away stops it.",
+        "tv_live_preview_sound" to "Plays the live preview with sound. Off = muted preview.",
         "compactStreamsV2" to "Shows streams as small rows without the thumbnail image: everywhere, only on Following, or never.",
         "ui_name_display" to "When a streamer's display name differs from their login name, which one to show (or both).",
         "ui_rounduserimage" to "Shows profile pictures as circles instead of squares.",

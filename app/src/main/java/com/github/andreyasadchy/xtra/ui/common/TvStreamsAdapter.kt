@@ -1,5 +1,6 @@
 package com.github.andreyasadchy.xtra.ui.common
 
+import androidx.media3.common.Player
 import android.text.format.DateUtils
 import android.view.LayoutInflater
 import android.view.View
@@ -54,6 +55,22 @@ class TvStreamsAdapter(
     inner class PagingViewHolder(
         private val binding: TvStreamsListItemBinding,
     ) : RecyclerView.ViewHolder(binding.root) {
+        fun attachPreview(player: Player) {
+            binding.previewVideo.alpha = 0f
+            player.setVideoTextureView(binding.previewVideo)
+        }
+
+        /** Called when the first video frame is ready: fade the video in over the thumbnail. */
+        fun showPreviewFrame() {
+            binding.previewVideo.animate().alpha(1f).setDuration(200L).start()
+        }
+
+        fun detachPreview(player: Player) {
+            binding.previewVideo.animate().cancel()
+            binding.previewVideo.alpha = 0f
+            player.clearVideoTextureView(binding.previewVideo)
+        }
+
         /** The stream shown on this card, used to update the selected card live. */
         var currentItem: Stream? = null
             private set

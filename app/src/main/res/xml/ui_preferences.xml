@@ -94,6 +94,20 @@
         app:iconSpaceReserved="false"
         app:singleLineTitle="false" />
 
+    <SwitchPreferenceCompat
+        android:defaultValue="true"
+        android:key="tv_live_preview"
+        android:title="@string/tv_live_preview"
+        app:iconSpaceReserved="false"
+        app:singleLineTitle="false" />
+
+    <SwitchPreferenceCompat
+        android:defaultValue="false"
+        android:key="tv_live_preview_sound"
+        android:title="@string/tv_live_preview_sound"
+        app:iconSpaceReserved="false"
+        app:singleLineTitle="false" />
+
     <ListPreference
         android:defaultValue="0"
         android:entries="@array/nameDisplayEntries"

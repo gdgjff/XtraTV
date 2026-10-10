@@ -1,5 +1,13 @@
 package com.github.andreyasadchy.xtra.ui.following.streams
 
+import com.github.andreyasadchy.xtra.ui.main.MainActivity
+import kotlinx.coroutines.Job
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.common.Player
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.MimeTypes
+import androidx.media3.common.MediaItem
+import android.view.ViewTreeObserver
 import android.os.SystemClock
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
@@ -82,11 +90,14 @@ class FollowedStreamsFragment : PagedListFragment(), Scrollable {
             // Live info on the selected card only: its uptime counts every second, and its viewer
             // count is fetched from Twitch when selected and every 30 seconds while it stays selected.
             // Other cards are left as they are while you browse.
+            view.viewTreeObserver.addOnGlobalFocusChangeListener(previewFocusListener)
             viewLifecycleOwner.lifecycleScope.launch {
                 viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                     var lastFetchedId: String? = null
                     var lastFetchTime = 0L
                     var seconds = 0
+                    var previewCandidateId: String? = null
+                    try {
                     while (true) {
                         delay(1.seconds)
                         seconds++
@@ -98,8 +109,20 @@ class FollowedStreamsFragment : PagedListFragment(), Scrollable {
                             continue
                         }
                         val holder = recyclerView.focusedChild?.let { recyclerView.getChildViewHolder(it) } as? TvStreamsAdapter.PagingViewHolder
-                        val item = holder?.currentItem ?: continue
+                        val item = holder?.currentItem
+                        if (holder == null || item == null) {
+                            previewCandidateId = null
+                            continue
+                        }
                         holder.updateInfo(item)
+                        // Live preview: start once the same card has stayed selected for a moment
+                        if (previewHolder == null && previewEnabled()) {
+                            if (previewCandidateId == item.id) {
+                                startPreview(holder, item)
+                            } else {
+                                previewCandidateId = item.id
+                            }
+                        }
                         val now = SystemClock.elapsedRealtime()
                         if (item.id != lastFetchedId || now - lastFetchTime >= 30_000L) {
                             lastFetchedId = item.id
@@ -114,6 +137,10 @@ class FollowedStreamsFragment : PagedListFragment(), Scrollable {
                                 }
                             }
                         }
+                    }
+                    } finally {
+                        // Screen left / app in background: stop the preview
+                        stopPreview()
                     }
                 }
             }
@@ -154,8 +181,79 @@ class FollowedStreamsFragment : PagedListFragment(), Scrollable {
         }
     }
 
+    // Android TV: live preview of the selected stream inside its card
+
+    private var previewPlayer: ExoPlayer? = null
+    private var previewHolder: TvStreamsAdapter.PagingViewHolder? = null
+    private var previewJob: Job? = null
+
+    /** Stops the preview as soon as the selection leaves the card that is playing. */
+    private val previewFocusListener = ViewTreeObserver.OnGlobalFocusChangeListener { _, newFocus ->
+        if (previewHolder != null && newFocus !== previewHolder?.itemView) {
+            stopPreview()
+        }
+    }
+
+    private fun previewEnabled(): Boolean {
+        // Never while a stream is open (full screen or minimized): one video at a time
+        return requireContext().prefs().getBoolean(KEY_LIVE_PREVIEW, true) &&
+                (activity as? MainActivity)?.playerFragment == null
+    }
+
+    private fun startPreview(holder: TvStreamsAdapter.PagingViewHolder, item: Stream) {
+        val channelLogin = item.channelLogin ?: return
+        previewHolder = holder
+        previewJob = viewLifecycleOwner.lifecycleScope.launch {
+            val url = viewModel.loadPreviewUrl(channelLogin)
+            if (previewHolder !== holder || holder.currentItem !== item) return@launch
+            if (url == null) {
+                stopPreview()
+                return@launch
+            }
+            val player = previewPlayer ?: ExoPlayer.Builder(requireContext()).build().apply {
+                // A small card doesn't need more than 480p
+                trackSelectionParameters = trackSelectionParameters.buildUpon().setMaxVideoSize(854, 480).build()
+                addListener(object : Player.Listener {
+                    override fun onRenderedFirstFrame() {
+                        previewHolder?.showPreviewFrame()
+                    }
+
+                    override fun onPlayerError(error: PlaybackException) {
+                        stopPreview()
+                    }
+                })
+            }.also { previewPlayer = it }
+            holder.attachPreview(player)
+            player.volume = if (requireContext().prefs().getBoolean(KEY_LIVE_PREVIEW_SOUND, false)) 1f else 0f
+            player.setMediaItem(MediaItem.Builder().setUri(url).setMimeType(MimeTypes.APPLICATION_M3U8).build())
+            player.prepare()
+            player.playWhenReady = true
+        }
+    }
+
+    private fun stopPreview() {
+        previewJob?.cancel()
+        previewJob = null
+        val holder = previewHolder
+        previewHolder = null
+        previewPlayer?.let { player ->
+            player.stop()
+            player.clearMediaItems()
+            holder?.detachPreview(player)
+        }
+    }
+
     override fun onDestroyView() {
+        stopPreview()
+        previewPlayer?.release()
+        previewPlayer = null
+        view?.viewTreeObserver?.takeIf { it.isAlive }?.removeOnGlobalFocusChangeListener(previewFocusListener)
         super.onDestroyView()
         _binding = null
+    }
+
+    companion object {
+        private const val KEY_LIVE_PREVIEW = "tv_live_preview"
+        private const val KEY_LIVE_PREVIEW_SOUND = "tv_live_preview_sound"
     }
 }
