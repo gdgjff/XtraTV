@@ -1,6 +1,5 @@
 package com.github.andreyasadchy.xtra.ui.following
 
-import com.github.andreyasadchy.xtra.util.isTv
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -104,8 +103,7 @@ class FollowPagerFragment : Fragment(), Scrollable, FragmentHost {
                     list
                 } else defaultTabs
             }
-            // TV: Following shows only the live channels (no Games / Videos / Channels tabs)
-            val tabs = if (requireContext().isTv()) listOf("1") else tabList.mapNotNull {
+            val tabs = tabList.mapNotNull {
                 val split = it.split(':')
                 val key = split[0]
                 val enabled = split[2] != "0"
