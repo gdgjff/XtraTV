@@ -49,7 +49,7 @@
         app:singleLineTitle="false" />
 
     <SwitchPreferenceCompat
-        android:defaultValue="false"
+        android:defaultValue="@bool/reducedPaddingDefault"
         android:key="ui_theme_reduced_padding"
         android:title="@string/reduced_padding"
         app:iconSpaceReserved="false"

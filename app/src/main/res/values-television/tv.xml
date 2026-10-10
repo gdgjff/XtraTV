@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android TV defaults: 4 thumbnails across, compact toolbars/tabs, and cards that grow when selected. -->
+<resources>
+    <string translatable="false" name="landscapeColumns">4</string>
+    <bool name="reducedPaddingDefault">true</bool>
+
+    <style name="Card" parent="Widget.Material3.CardView.Elevated">
+        <item name="strokeWidth">3dp</item>
+        <item name="strokeColor">@color/card_focus_stroke</item>
+        <item name="android:stateListAnimator">@animator/tv_card_focus</item>
+        <item name="android:layout_margin">8dp</item>
+    </style>
+
+    <style name="CardAmoled" parent="Widget.Material3.CardView.Elevated">
+        <item name="strokeWidth">3dp</item>
+        <item name="strokeColor">@color/card_focus_stroke</item>
+        <item name="android:stateListAnimator">@animator/tv_card_focus</item>
+        <item name="materialThemeOverlay">@style/CardOverlayAmoled</item>
+        <item name="android:layout_margin">8dp</item>
+    </style>
+
+    <style name="CompactCard" parent="Widget.Material3.CardView.Elevated">
+        <item name="strokeWidth">3dp</item>
+        <item name="strokeColor">@color/card_focus_stroke</item>
+        <item name="android:stateListAnimator">@animator/tv_card_focus</item>
+        <item name="android:layout_margin">6dp</item>
+    </style>
+
+    <style name="CompactCardAmoled" parent="Widget.Material3.CardView.Elevated">
+        <item name="strokeWidth">3dp</item>
+        <item name="strokeColor">@color/card_focus_stroke</item>
+        <item name="android:stateListAnimator">@animator/tv_card_focus</item>
+        <item name="materialThemeOverlay">@style/CardOverlayAmoled</item>
+        <item name="android:layout_margin">6dp</item>
+    </style>
+</resources>

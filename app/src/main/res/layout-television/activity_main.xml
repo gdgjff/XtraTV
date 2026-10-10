@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android TV version of the main screen: menu as a rail on the left instead of a bar at the bottom. -->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:colorBackground">
+
+    <LinearLayout
+        android:id="@+id/navBarContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <com.google.android.material.navigationrail.NavigationRailView
+            android:id="@+id/navBar"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:paddingTop="16dp"
+            app:labelVisibilityMode="labeled"
+            app:menuGravity="center"
+            tools:viewBindingType="com.google.android.material.navigation.NavigationBarView" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="#33888888" />
+    </LinearLayout>
+
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/navHostFragment"
+        android:name="androidx.navigation.fragment.NavHostFragment"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginEnd="8dp"
+        app:defaultNavHost="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/navBarContainer"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:layout="@layout/fragment_media_pager" />
+
+    <FrameLayout
+        android:id="@+id/playerContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipChildren="false"
+        android:focusable="true" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

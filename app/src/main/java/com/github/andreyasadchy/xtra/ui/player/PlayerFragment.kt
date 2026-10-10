@@ -439,7 +439,7 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
                                     val keyboardInsets = windowInsets?.getInsets(WindowInsetsCompat.Type.ime())?.bottom?.let { if (it > 0) it - (insets?.bottom ?: 0) else it } ?: 0
                                     val scaledXDiff = (slidingLayout.width * (1f - slidingLayout.scaleX)) / 2
                                     val scaledYDiff = (slidingLayout.height * (1f - slidingLayout.scaleY)) / 2
-                                    val navBarHeight = requireView().rootView.findViewById<LinearLayout>(R.id.navBarContainer)?.height?.takeIf { it > 0 }?.let { it - keyboardInsets } ?: (insets?.bottom ?: 0)
+                                    val navBarHeight = requireView().rootView.findViewById<LinearLayout>(R.id.navBarContainer)?.takeIf { !tvMode }?.height?.takeIf { it > 0 }?.let { it - keyboardInsets } ?: (insets?.bottom ?: 0)
                                     val newX = slidingLayout.width - (insets?.right ?: 0) - (playerLayout.width * slidingLayout.scaleX) - (TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 20F, resources.displayMetrics) * slidingLayout.scaleX)
                                     val newY = slidingLayout.height - navBarHeight - (playerLayout.height * slidingLayout.scaleY) - (TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 30F, resources.displayMetrics) * slidingLayout.scaleY)
                                     moveAnimation = slidingLayout.animate().apply {
@@ -1164,7 +1164,7 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
                         val playerHeight = (slidingLayout.width / (16f / 9f)).toInt()
                         val scaledXDiff = (slidingLayout.width * (1f - minimizedScaleX)) / 2
                         val scaledYDiff = (slidingLayout.height * (1f - minimizedScaleY)) / 2
-                        val navBarHeight = requireView().rootView.findViewById<LinearLayout>(R.id.navBarContainer)?.height?.takeIf { it > 0 }?.let { it - keyboardInsets } ?: (insets?.bottom ?: 0)
+                        val navBarHeight = requireView().rootView.findViewById<LinearLayout>(R.id.navBarContainer)?.takeIf { !tvMode }?.height?.takeIf { it > 0 }?.let { it - keyboardInsets } ?: (insets?.bottom ?: 0)
                         val newX = slidingLayout.width - (insets?.right ?: 0) - (slidingLayout.width * minimizedScaleX) - (TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 20F, resources.displayMetrics) * minimizedScaleX)
                         val newY = slidingLayout.height - navBarHeight - (playerHeight * minimizedScaleY) - (TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 30F, resources.displayMetrics) * minimizedScaleY)
                         slidingLayout.translationX = 0f - scaledXDiff - ((insets?.left ?: 0) * minimizedScaleX) + newX
@@ -1239,7 +1239,7 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
                         val playerWidth = slidingLayout.width - getHorizontalInsets(windowInsets)
                         val scaledXDiff = (slidingLayout.width * (1f - minimizedScaleX)) / 2
                         val scaledYDiff = (slidingLayout.height * (1f - minimizedScaleY)) / 2
-                        val navBarHeight = requireView().rootView.findViewById<LinearLayout>(R.id.navBarContainer)?.height?.takeIf { it > 0 }?.let { it - keyboardInsets } ?: (insets?.bottom ?: 0)
+                        val navBarHeight = requireView().rootView.findViewById<LinearLayout>(R.id.navBarContainer)?.takeIf { !tvMode }?.height?.takeIf { it > 0 }?.let { it - keyboardInsets } ?: (insets?.bottom ?: 0)
                         val newX = slidingLayout.width - (insets?.right ?: 0) - (playerWidth * minimizedScaleX) - (TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 20F, resources.displayMetrics) * minimizedScaleX)
                         val newY = slidingLayout.height - navBarHeight - (slidingLayout.height * minimizedScaleY) - (TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 30F, resources.displayMetrics) * minimizedScaleY)
                         slidingLayout.translationX = 0f - scaledXDiff - ((insets?.left ?: 0) * minimizedScaleX) + newX
@@ -2040,7 +2040,7 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
                 val keyboardInsets = windowInsets?.getInsets(WindowInsetsCompat.Type.ime())?.bottom?.let { if (it > 0) it - (insets?.bottom ?: 0) else it } ?: 0
                 val scaledXDiff = (slidingLayout.width * (1f - minimizedScaleX)) / 2
                 val scaledYDiff = (slidingLayout.height * (1f - minimizedScaleY)) / 2
-                val navBarHeight = requireView().rootView.findViewById<LinearLayout>(R.id.navBarContainer)?.height?.takeIf { it > 0 }?.let { it - keyboardInsets } ?: (insets?.bottom ?: 0)
+                val navBarHeight = requireView().rootView.findViewById<LinearLayout>(R.id.navBarContainer)?.takeIf { !tvMode }?.height?.takeIf { it > 0 }?.let { it - keyboardInsets } ?: (insets?.bottom ?: 0)
                 val playerWidth = if (isPortrait) {
                     playerLayout.width
                 } else {

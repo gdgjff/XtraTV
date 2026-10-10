@@ -32,6 +32,7 @@
         <com.google.android.material.bottomnavigation.BottomNavigationView
             android:id="@+id/navBar"
             android:layout_width="match_parent"
+            tools:viewBindingType="com.google.android.material.navigation.NavigationBarView"
             android:layout_height="wrap_content"
             android:minHeight="?attr/bottomNavigationHeight"
             app:labelVisibilityMode="labeled" />

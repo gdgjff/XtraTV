@@ -19,7 +19,7 @@ class GridRecyclerView : RecyclerView {
     private val prefs = context.prefs()
     private val material3 = prefs.getBoolean(C.UI_THEME_MATERIAL3, true)
     private val portraitColumns = prefs.getString(C.PORTRAIT_COLUMN_COUNT, "1")!!.toInt()
-    private val landscapeColumns = prefs.getString(C.LANDSCAPE_COLUMN_COUNT, "2")!!.toInt()
+    private val landscapeColumns = (prefs.getString(C.LANDSCAPE_COLUMN_COUNT, null) ?: context.getString(R.string.landscapeColumns)).toInt()
 
     private val gridLayoutManager: GridLayoutManager
 

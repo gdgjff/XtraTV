@@ -42,7 +42,7 @@ fun Activity.applyTheme() {
         prefs().getString(C.THEME, "0") ?: "0"
     }
     if (prefs().getBoolean(C.UI_THEME_MATERIAL3, true)) {
-        val reducedPadding = prefs().getBoolean(C.UI_THEME_REDUCED_PADDING, false)
+        val reducedPadding = prefs().getBoolean(C.UI_THEME_REDUCED_PADDING, resources.getBoolean(R.bool.reducedPaddingDefault))
         val compactText = prefs().getBoolean(C.UI_THEME_COMPACT_TEXT, false)
         when (prefs().getString(C.UI_THEME_ROUNDED_CORNERS, "0")) {
             "1" -> {
