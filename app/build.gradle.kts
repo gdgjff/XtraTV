@@ -70,6 +70,7 @@ dependencies {
     implementation("com.google.mlkit:translate:17.0.3")
 
     implementation(libs.material)
+    implementation("com.google.zxing:core:3.5.3") // QR code for TV login
     implementation(libs.markwon.core)
     implementation(libs.markwon.linkify)
 

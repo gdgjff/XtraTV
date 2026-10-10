@@ -9,4 +9,9 @@ class DeviceCodeResponse(
     val deviceCode: String? = null,
     @SerialName("user_code")
     val userCode: String? = null,
+    @SerialName("verification_uri")
+    val verificationUri: String? = null,
+    val interval: Int? = null,
+    @SerialName("expires_in")
+    val expiresIn: Int? = null,
 )

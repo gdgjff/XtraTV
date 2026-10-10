@@ -5,7 +5,10 @@ import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Color
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
@@ -37,15 +40,23 @@ import com.github.andreyasadchy.xtra.util.C
 import com.github.andreyasadchy.xtra.util.TwitchApiHelper
 import com.github.andreyasadchy.xtra.util.applyTheme
 import com.github.andreyasadchy.xtra.util.getAlertDialogBuilder
+import com.github.andreyasadchy.xtra.util.isTv
 import com.github.andreyasadchy.xtra.util.prefs
 import com.github.andreyasadchy.xtra.util.tokenPrefs
 import com.google.android.material.slider.Slider
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.EncodeHintType
+import com.google.zxing.qrcode.QRCodeWriter
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.util.regex.Pattern
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.seconds
 
 class LoginActivity : AppCompatActivity() {
 
@@ -62,6 +73,7 @@ class LoginActivity : AppCompatActivity() {
     private var readHeaders = false
     private var readHeaders2 = false
     private var checkUrl = false
+    private var tvLoginJob: Job? = null
 
     private lateinit var binding: ActivityLoginBinding
 
@@ -320,7 +332,110 @@ class LoginActivity : AppCompatActivity() {
                 checkUrl = true
                 webView.loadUrl(helixAuthUrl)
             }
+            if (isTv()) {
+                setupTvQrLogin(networkLibrary)
+            }
         }
+    }
+
+    // Android TV: log in by scanning a QR code with a phone (Twitch device activation),
+    // with the normal web login still available behind a button.
+
+    private fun setupTvQrLogin(networkLibrary: String?) {
+        with(binding) {
+            webView.visibility = View.INVISIBLE
+            textZoom.visibility = View.GONE
+            havingTrouble.visibility = View.GONE
+            tvLoginLayout.visibility = View.VISIBLE
+            tvUseWebLogin.setOnClickListener {
+                tvLoginJob?.cancel()
+                tvLoginLayout.visibility = View.GONE
+                webView.visibility = View.VISIBLE
+                textZoom.visibility = View.VISIBLE
+                havingTrouble.visibility = View.VISIBLE
+                webView.requestFocus()
+            }
+            tvUseWebLogin.requestFocus()
+        }
+        startTvQrLogin(networkLibrary)
+    }
+
+    private fun startTvQrLogin(networkLibrary: String?) {
+        tvLoginJob?.cancel()
+        val gqlClientId = prefs().getString(C.GQL_CLIENT_ID2, "kd1unb4b3q4t58fwlpcbzcbnm76a8fp")
+        val qrSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 224f, resources.displayMetrics).toInt()
+        tvLoginJob = lifecycleScope.launch {
+            while (isActive) {
+                binding.tvStatus.setText(R.string.tv_login_loading)
+                val codeResponse = try {
+                    xtraModule.authRepository.getDeviceCode(networkLibrary, "client_id=${gqlClientId}&scopes=channel_read+chat%3Aread+user_blocks_edit+user_blocks_read+user_follows_edit+user_read")
+                } catch (e: Exception) {
+                    null
+                }
+                val deviceCode = codeResponse?.deviceCode
+                val userCode = codeResponse?.userCode
+                if (deviceCode.isNullOrBlank() || userCode.isNullOrBlank()) {
+                    binding.tvStatus.setText(R.string.tv_login_error)
+                    delay(5.seconds)
+                    continue
+                }
+                val activateUrl = codeResponse?.verificationUri?.takeIf { it.isNotBlank() }
+                    ?: "https://www.twitch.tv/activate?device-code=${userCode}"
+                binding.tvCode.text = userCode
+                try {
+                    binding.tvQrCode.setImageBitmap(createQrBitmap(activateUrl, qrSize))
+                } catch (e: Exception) {
+                    binding.tvQrCode.setImageDrawable(null)
+                }
+                binding.tvStatus.setText(R.string.tv_login_waiting)
+                val interval = (codeResponse?.interval ?: 5).coerceAtLeast(1)
+                val expiresAt = SystemClock.elapsedRealtime() + (codeResponse?.expiresIn ?: 1800) * 1000L
+                var getNewCode = false
+                while (isActive && !getNewCode) {
+                    delay(interval.seconds)
+                    if (SystemClock.elapsedRealtime() > expiresAt) {
+                        getNewCode = true
+                        continue
+                    }
+                    val tokenResponse = try {
+                        xtraModule.authRepository.getToken(networkLibrary, "client_id=${gqlClientId}&device_code=${deviceCode}&grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Adevice_code")
+                    } catch (e: Exception) {
+                        null
+                    }
+                    val token = tokenResponse?.token
+                    if (!token.isNullOrBlank()) {
+                        binding.tvStatus.setText(R.string.tv_login_success)
+                        if (validateGQLToken(networkLibrary, gqlClientId, token)) {
+                            this@LoginActivity.gqlClientId = gqlClientId
+                            gqlToken = token
+                            done()
+                            return@launch
+                        } else {
+                            getNewCode = true
+                        }
+                    } else {
+                        when (tokenResponse?.message) {
+                            null, "authorization_pending" -> {}
+                            "slow_down" -> delay(interval.seconds)
+                            else -> getNewCode = true // expired, denied or invalid code: show a fresh one
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun createQrBitmap(text: String, size: Int): Bitmap {
+        val matrix = QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, size, size, mapOf(EncodeHintType.MARGIN to 1))
+        val width = matrix.width
+        val height = matrix.height
+        val pixels = IntArray(width * height)
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                pixels[y * width + x] = if (matrix.get(x, y)) Color.BLACK else Color.WHITE
+            }
+        }
+        return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
     }
 
     private fun setupButtons(networkLibrary: String?, helixClientId: String?, helixAuthUrl: String) {

@@ -596,4 +596,12 @@
     <string name="stopping_video_swap">Stopping video swap</string>
     <string name="starting_proxy">Starting proxy</string>
     <string name="stopping_proxy">Stopping proxy</string>
+    <string name="tv_login_title">Log in with your phone</string>
+    <string name="tv_login_steps">1. Scan the QR code with your phone camera\n2. Log in to Twitch and tap Activate\n3. This screen logs you in automatically</string>
+    <string name="tv_login_manual">Or go to twitch.tv/activate and enter:</string>
+    <string name="tv_login_loading">Getting a code…</string>
+    <string name="tv_login_waiting">Waiting for you to approve on your phone…</string>
+    <string name="tv_login_success">Approved! Logging in…</string>
+    <string name="tv_login_error">Couldn\'t get a code. Retrying…</string>
+    <string name="tv_login_use_web">Log in on the TV instead</string>
 </resources>
