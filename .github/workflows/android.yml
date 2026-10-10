@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
     - name: Checkout sources
       uses: actions/checkout@v7
@@ -32,7 +34,9 @@ jobs:
         path: app/build/outputs/apk/release/*.apk
 
     - name: Generate release notes
-      run: git log refs/tags/latest..HEAD --oneline --decorate=no > notes.txt
+      run: |
+        cp app/build/outputs/apk/release/*.apk XtraTV.apk
+        echo "Xtra TV - Android TV build. Download XtraTV.apk below." > notes.txt
 
     - name: Update tag
       run: |
@@ -48,4 +52,4 @@ jobs:
     - name: Create release
       env:
         GH_TOKEN: ${{ github.token }}
-      run: gh release create latest --title "Latest" --notes-file notes.txt --latest=true 'app/build/outputs/apk/release/*.apk'
+      run: gh release create latest --title "Latest" --notes-file notes.txt --latest=true XtraTV.apk
