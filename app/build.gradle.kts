@@ -24,7 +24,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.github.andreyasadchy.xtra"
+        applicationId = "com.github.andreyasadchy.xtra.tv" // separate app, installs next to regular Xtra
         minSdk = 24
         targetSdk = 37
         versionCode = 121

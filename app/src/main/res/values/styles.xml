@@ -186,10 +186,14 @@
     </style>
 
     <style name="CompactCard" parent="Widget.Material3.CardView.Elevated">
+        <item name="strokeWidth">3dp</item>
+        <item name="strokeColor">@color/card_focus_stroke</item>
         <item name="android:layout_margin">4dp</item>
     </style>
 
     <style name="CompactCardAmoled" parent="Widget.Material3.CardView.Elevated">
+        <item name="strokeWidth">3dp</item>
+        <item name="strokeColor">@color/card_focus_stroke</item>
         <item name="materialThemeOverlay">@style/CardOverlayAmoled</item>
         <item name="android:layout_margin">4dp</item>
     </style>
@@ -1120,10 +1124,14 @@
     </style>
 
     <style name="Card" parent="Widget.Material3.CardView.Elevated">
+        <item name="strokeWidth">3dp</item>
+        <item name="strokeColor">@color/card_focus_stroke</item>
         <item name="android:layout_margin">8dp</item>
     </style>
 
     <style name="CardAmoled" parent="Widget.Material3.CardView.Elevated">
+        <item name="strokeWidth">3dp</item>
+        <item name="strokeColor">@color/card_focus_stroke</item>
         <item name="materialThemeOverlay">@style/CardOverlayAmoled</item>
         <item name="android:layout_margin">8dp</item>
     </style>

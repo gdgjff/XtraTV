@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Card outline: invisible normally, shown when the card is selected with a TV remote. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="?attr/colorOnSurface" android:state_focused="true" />
+    <item android:color="@android:color/transparent" />
+</selector>

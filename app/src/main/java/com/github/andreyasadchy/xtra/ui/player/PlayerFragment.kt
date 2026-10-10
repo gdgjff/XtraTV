@@ -21,6 +21,7 @@ import android.text.format.DateUtils
 import android.util.TypedValue
 import android.view.GestureDetector
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.RoundedCorner
@@ -75,6 +76,7 @@ import com.github.andreyasadchy.xtra.util.C
 import com.github.andreyasadchy.xtra.util.TwitchApiHelper
 import com.github.andreyasadchy.xtra.util.getAlertDialogBuilder
 import com.github.andreyasadchy.xtra.util.isKeyboardShown
+import com.github.andreyasadchy.xtra.util.isTv
 import com.github.andreyasadchy.xtra.util.prefs
 import com.github.andreyasadchy.xtra.util.tokenPrefs
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -123,6 +125,8 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
     private val controllerHideAction = Runnable { if (view != null) hideController() }
     private var controllerIsAnimating = false
     private var controllerAnimation: ViewPropertyAnimator? = null
+    private var tvMode = false
+    private var tvConsumedKeyCode = KeyEvent.KEYCODE_UNKNOWN
     private var backgroundColor: Int? = null
     private var backgroundVisible = false
 
@@ -176,6 +180,10 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
     @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        tvMode = requireContext().isTv()
+        if (tvMode) {
+            setupTvNavigation()
+        }
         with(binding) {
             viewLifecycleOwner.lifecycleScope.launch {
                 repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -1979,6 +1987,7 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
             if (isInPictureInPictureMode) {
                 if (!isMaximized) {
                     isMaximized = true
+                    updateTvFocusState()
                     requireActivity().onBackPressedDispatcher.addCallback(this@PlayerFragment, backPressedCallback)
                     if (playbackService?.type == BasePlaybackService.STREAM && chatFragment?.emoteMenuIsVisible() == true) {
                         chatFragment?.toggleBackPressedCallback(true)
@@ -2023,6 +2032,7 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
             backPressedCallback.remove()
             useController = false
             hideController(true)
+            updateTvFocusState()
             fun animate() {
                 val (minimizedScaleX, minimizedScaleY) = getScaleValues()
                 val windowInsets = ViewCompat.getRootWindowInsets(requireView())
@@ -2094,6 +2104,10 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
             if (!controllerHideOnTouch) {
                 showController(force = true)
                 updateProgress()
+            }
+            if (tvMode) {
+                updateTvFocusState()
+                showTvController()
             }
             if (isPortrait) {
                 chatLayout.visibility = View.VISIBLE
@@ -2366,8 +2380,127 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
     }
 
     override fun onDestroyView() {
+        if (tvMode) {
+            (activity as? MainActivity)?.setMainContentFocusBlocked(blocked = false, restoreFocus = true)
+        }
         super.onDestroyView()
         _binding = null
+    }
+
+    // Android TV remote (D-pad) support
+
+    private fun setupTvNavigation() {
+        with(binding) {
+            // The mini player can be selected with the remote: OK opens it full screen, holding OK closes it.
+            dragView.setBackgroundResource(R.drawable.tv_mini_player_focus)
+            dragView.setOnClickListener {
+                if (!isMaximized && !isAnimating) {
+                    maximize()
+                }
+            }
+            dragView.setOnLongClickListener {
+                if (!isMaximized && !isAnimating) {
+                    close()
+                    (activity as? MainActivity)?.closePlayer()
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+        updateTvFocusState()
+        if (isMaximized) {
+            showTvController()
+        }
+    }
+
+    private fun updateTvFocusState() {
+        if (!tvMode || _binding == null) return
+        // setOnClickListener makes the view focusable automatically, so set it explicitly:
+        // only the mini player should be selectable, never the full-screen overlay.
+        binding.dragView.isFocusable = !isMaximized
+        (activity as? MainActivity)?.setMainContentFocusBlocked(blocked = isMaximized, restoreFocus = !isMaximized)
+    }
+
+    private fun showTvController() {
+        if (_binding == null) return
+        showController(force = true)
+        // The controls fade in, so wait a moment until they are visible before moving focus onto them.
+        binding.playerControls.root.postDelayed({
+            if (_binding != null && isMaximized && binding.playerControls.root.isVisible) {
+                val controls = binding.playerControls
+                if (controls.root.findFocus() == null) {
+                    if (!(controls.playPause.isVisible && controls.playPause.requestFocus())) {
+                        controls.root.requestFocus(View.FOCUS_DOWN)
+                    }
+                }
+            }
+        }, 100)
+    }
+
+    /**
+     * Handles remote keys while the player is open. Returns true when the key was used here.
+     * - Controls hidden: OK / up / down show the controls; left / right skip back / forward in videos.
+     * - Controls shown: keys move between buttons as normal and keep the controls on screen;
+     *   Back hides the controls (a second Back minimizes the player as before).
+     * Media keys (play/pause, fast-forward...) are left to the media session, which already handles them.
+     */
+    fun handleTvKeyEvent(event: KeyEvent): Boolean {
+        if (!tvMode || _binding == null) return false
+        if (event.action == KeyEvent.ACTION_UP) {
+            if (event.keyCode == tvConsumedKeyCode) {
+                tvConsumedKeyCode = KeyEvent.KEYCODE_UNKNOWN
+                return true
+            }
+            return false
+        }
+        if (event.action != KeyEvent.ACTION_DOWN || !isMaximized || isAnimating) return false
+        val controlsVisible = binding.playerControls.root.isVisible
+        val consumed = when (event.keyCode) {
+            KeyEvent.KEYCODE_BACK -> {
+                if (controlsVisible && controllerHideOnTouch && !controllerIsAnimating) {
+                    hideController(force = true)
+                    true
+                } else {
+                    false
+                }
+            }
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER,
+            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN -> {
+                if (!controlsVisible) {
+                    if (event.repeatCount == 0) {
+                        showTvController()
+                    }
+                    true
+                } else {
+                    showController()
+                    false
+                }
+            }
+            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                if (!controlsVisible) {
+                    if (playbackService?.type != BasePlaybackService.STREAM && (getTotalDuration() ?: 0L) > 0L) {
+                        if (event.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) rewind() else fastForward()
+                    } else if (event.repeatCount == 0) {
+                        showTvController()
+                    }
+                    true
+                } else {
+                    showController()
+                    false
+                }
+            }
+            else -> {
+                if (controlsVisible) {
+                    showController()
+                }
+                false
+            }
+        }
+        if (consumed) {
+            tvConsumedKeyCode = event.keyCode
+        }
+        return consumed
     }
 
     companion object {

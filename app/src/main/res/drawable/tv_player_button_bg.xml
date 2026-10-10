@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Highlights player controls when they are selected with a TV remote (D-pad). -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="oval">
+            <solid android:color="#59FFFFFF" />
+            <stroke android:width="2dp" android:color="#FFFFFFFF" />
+        </shape>
+    </item>
+    <item>
+        <color android:color="@android:color/transparent" />
+    </item>
+</selector>

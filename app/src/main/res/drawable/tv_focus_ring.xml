@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Frame drawn around an element when it is selected with a TV remote (D-pad). -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#26FFFFFF" />
+            <stroke android:width="3dp" android:color="?attr/colorOnSurface" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+    <item>
+        <color android:color="@android:color/transparent" />
+    </item>
+</selector>

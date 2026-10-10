@@ -23,6 +23,7 @@ import android.os.Bundle
 import android.os.PowerManager
 import android.os.ext.SdkExtensions
 import android.text.format.Formatter
+import android.view.KeyEvent
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
@@ -92,6 +93,7 @@ import com.github.andreyasadchy.xtra.util.C
 import com.github.andreyasadchy.xtra.util.TwitchApiHelper
 import com.github.andreyasadchy.xtra.util.applyTheme
 import com.github.andreyasadchy.xtra.util.getAlertDialogBuilder
+import com.github.andreyasadchy.xtra.util.isTv
 import com.github.andreyasadchy.xtra.util.prefs
 import com.github.andreyasadchy.xtra.util.tokenPrefs
 import com.google.android.material.color.MaterialColors
@@ -129,6 +131,8 @@ class MainActivity : AppCompatActivity() {
     var logoutResultLauncher: ActivityResultLauncher<Intent>? = null
     private var updateDownloadDialogBinding: DialogUpdateDownloadBinding? = null
     private var updateDownloadDialog: AlertDialog? = null
+    private var tvMode = false
+    private var lastMainContentFocus: java.lang.ref.WeakReference<View>? = null
 
     //Lifecycle methods
 
@@ -153,6 +157,12 @@ class MainActivity : AppCompatActivity() {
         applyTheme()
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        tvMode = isTv()
+        if (tvMode) {
+            // The (usually empty) player container covers the whole screen; if it can take focus,
+            // the remote's selection disappears into it. The player's own views stay focusable.
+            binding.playerContainer.isFocusable = false
+        }
         setNavBarColor(resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT)
         val ignoreCutouts = prefs.getBoolean(C.UI_DRAW_BEHIND_CUTOUTS, false)
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, windowInsets ->
@@ -993,6 +1003,45 @@ class MainActivity : AppCompatActivity() {
 
 //Player methods
 
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (tvMode && (playerFragment as? PlayerFragment)?.handleTvKeyEvent(event) == true) {
+            return true
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
+    /**
+     * Android TV: while the player is full screen, stop the remote's selection from wandering onto
+     * the lists and tabs hidden behind it. When it closes or shrinks, put the selection back where it was.
+     */
+    fun setMainContentFocusBlocked(blocked: Boolean, restoreFocus: Boolean = false) {
+        if (!tvMode || !::binding.isInitialized) return
+        val mainViews = listOf<ViewGroup>(binding.navHostFragment, binding.navBarContainer)
+        if (blocked) {
+            val focused = mainViews.firstNotNullOfOrNull { it.findFocus() }
+            // Block first, so the cleared selection can't land back on the views behind the player
+            mainViews.forEach { it.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS }
+            if (focused != null) {
+                lastMainContentFocus = java.lang.ref.WeakReference(focused)
+                focused.clearFocus()
+            }
+        } else {
+            mainViews.forEach { it.descendantFocusability = ViewGroup.FOCUS_BEFORE_DESCENDANTS }
+            if (restoreFocus) {
+                binding.root.post {
+                    if (mainViews.none { it.hasFocus() }) {
+                        val last = lastMainContentFocus?.get()
+                        if (last == null || !last.isAttachedToWindow || !last.isShown || !last.requestFocus()) {
+                            if (!binding.navHostFragment.requestFocus()) {
+                                binding.navBarContainer.requestFocus()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private fun startPlayer(fragment: Fragment) {
         playerFragment = fragment
         supportFragmentManager.beginTransaction()
@@ -1133,6 +1182,10 @@ class MainActivity : AppCompatActivity() {
             }
         }, null)
         binding.navBar.apply {
+            if (tvMode) {
+                // Clearly outline the selected tab when using a remote
+                setItemBackgroundResource(R.drawable.tv_focus_ring)
+            }
             if (!prefs.getBoolean(C.UI_THEME_BOTTOM_NAV_COLOR, true) && prefs.getBoolean(C.UI_THEME_MATERIAL3, true)) {
                 setBackgroundColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorSurface))
             }
