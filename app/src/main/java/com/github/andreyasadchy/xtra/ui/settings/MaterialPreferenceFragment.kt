@@ -1,5 +1,8 @@
 package com.github.andreyasadchy.xtra.ui.settings
 
+import android.os.Bundle
+import android.view.View
+import com.github.andreyasadchy.xtra.util.applyTvRowHighlight
 import androidx.core.os.bundleOf
 import androidx.fragment.app.DialogFragment
 import androidx.preference.EditTextPreference
@@ -11,6 +14,11 @@ import com.github.andreyasadchy.xtra.util.C
 import com.github.andreyasadchy.xtra.util.prefs
 
 abstract class MaterialPreferenceFragment : PreferenceFragmentCompat() {
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        listView?.applyTvRowHighlight() // TV: outline the setting the remote is on
+    }
 
     override fun onDisplayPreferenceDialog(preference: Preference) {
         if (requireContext().prefs().getBoolean(C.UI_THEME_MATERIAL3, true)) {

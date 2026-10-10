@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TV: outline for the row the remote is on in lists (settings rows, choices in pop-ups). -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:drawable="@drawable/tv_focus_ring_on" />
+    <item android:state_selected="true" android:drawable="@drawable/tv_focus_ring_on" />
+    <item android:drawable="@android:color/transparent" />
+</selector>
