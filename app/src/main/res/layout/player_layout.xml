@@ -300,6 +300,22 @@
             app:tint="@android:color/white"
             tools:visibility="visible" />
 
+        <!-- TV: how far behind live the stream is -->
+        <TextView
+            android:id="@+id/latency"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginStart="6dp"
+            android:gravity="center_vertical"
+            android:shadowColor="#CC000000"
+            android:shadowRadius="4"
+            android:textColor="@android:color/white"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:text="Delay: 3.4s"
+            tools:visibility="visible" />
+
     </LinearLayout>
 
     <LinearLayout

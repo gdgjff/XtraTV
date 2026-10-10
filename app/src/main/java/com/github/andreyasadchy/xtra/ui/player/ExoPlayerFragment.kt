@@ -352,6 +352,13 @@ class ExoPlayerFragment : PlayerFragment() {
 
     override fun getTotalDuration() = (playbackService?.player?.currentManifest as? HlsManifest)?.mediaPlaylist?.durationUs?.div(1000)
 
+    override fun getLiveOffset(): Long? {
+        val player = playbackService?.player ?: return null
+        if (!player.isCurrentMediaItemLive) return null
+        val offset = player.currentLiveOffset
+        return if (offset != androidx.media3.common.C.TIME_UNSET && offset >= 0) offset else null
+    }
+
     override fun playPause() {
         playbackService?.togglePause()
     }

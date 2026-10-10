@@ -596,6 +596,7 @@
     <string name="stopping_video_swap">Stopping video swap</string>
     <string name="starting_proxy">Starting proxy</string>
     <string name="stopping_proxy">Stopping proxy</string>
+    <string name="tv_stream_delay">Delay: %1$.1fs</string>
     <string name="tv_login_title">Log in with your phone</string>
     <string name="tv_login_steps">1. Scan the QR code with your phone camera\n2. Log in to Twitch and tap Activate\n3. This screen logs you in automatically</string>
     <string name="tv_login_manual">Or go to twitch.tv/activate and enter:</string>

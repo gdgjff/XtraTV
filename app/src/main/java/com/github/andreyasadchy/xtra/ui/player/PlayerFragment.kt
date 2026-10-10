@@ -140,6 +140,7 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
     open fun getCurrentSpeed(): Float? = null
     open fun getCurrentVolume(): Float? = null
     open fun getTotalDuration(): Long? = null
+    open fun getLiveOffset(): Long? = null
     open fun playPause() {}
     open fun rewind() {}
     open fun fastForward() {}
@@ -746,7 +747,7 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
                     minimize.visibility = View.VISIBLE
                     minimize.setOnClickListener { minimize() }
                 }
-                if (requireContext().prefs().getBoolean(C.PLAYER_VOLUME_BUTTON, true)) {
+                if (!tvMode && requireContext().prefs().getBoolean(C.PLAYER_VOLUME_BUTTON, true)) { // TV: the remote controls volume
                     volume.visibility = View.VISIBLE
                     volume.setOnClickListener {
                         showController(force = true)
@@ -2381,6 +2382,7 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
 
     override fun onDestroyView() {
         if (tvMode) {
+            _binding?.playerControls?.root?.removeCallbacks(latencyUpdater)
             (activity as? MainActivity)?.setMainContentFocusBlocked(blocked = false, restoreFocus = true, caller = this)
         }
         super.onDestroyView()
@@ -2414,6 +2416,22 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
         updateTvFocusState()
         if (isMaximized) {
             showTvController()
+        }
+        binding.playerControls.root.post(latencyUpdater)
+    }
+
+    // Shows how far behind live the stream is (refreshed every second) next to the bottom buttons
+    private val latencyUpdater = object : Runnable {
+        override fun run() {
+            val controls = _binding?.playerControls ?: return
+            val offset = if (playbackService?.type == BasePlaybackService.STREAM) getLiveOffset() else null
+            if (offset != null) {
+                controls.latency.text = getString(R.string.tv_stream_delay, offset / 1000f)
+                controls.latency.visibility = View.VISIBLE
+            } else {
+                controls.latency.visibility = View.GONE
+            }
+            controls.root.postDelayed(this, 1000)
         }
     }
 
