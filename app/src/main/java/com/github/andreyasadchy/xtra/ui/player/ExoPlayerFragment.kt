@@ -352,6 +352,58 @@ class ExoPlayerFragment : PlayerFragment() {
 
     override fun getTotalDuration() = (playbackService?.player?.currentManifest as? HlsManifest)?.mediaPlaylist?.durationUs?.div(1000)
 
+    private var catchingUp = false
+
+    /**
+     * Xtra TV catch-up: speeds up to the set speed when the delay reaches the "start" value, back to
+     * normal at the "stop" value. Only speeds up when enough video is loaded ahead, so it never causes buffering.
+     * Returns the catch-up speed while catching up, null otherwise.
+     */
+    override fun updateLiveCatchUp(): Float? {
+        val service = playbackService ?: return null
+        val player = service.player ?: return null
+        val prefs = requireContext().prefs()
+        val active = service.tvCatchUpEnabled() && service.type == BasePlaybackService.STREAM &&
+                player.isCurrentMediaItemLive && service.secondaryPlayer == null
+        val offset = player.currentLiveOffset.takeIf { it != androidx.media3.common.C.TIME_UNSET && it >= 0 }
+        if (!active || offset == null) {
+            stopCatchUp()
+            return null
+        }
+        val startMs = ((prefs.getString(ExoPlayerService.TV_CATCH_UP_START, "2.5")?.toFloatOrNull() ?: 2.5f) * 1000).toLong()
+        val stopMs = ((prefs.getString(ExoPlayerService.TV_CATCH_UP_STOP, "2.0")?.toFloatOrNull() ?: 2f) * 1000).toLong()
+            .coerceAtMost(startMs - 200)
+        val speed = (prefs.getString(ExoPlayerService.TV_CATCH_UP_SPEED, "1.1")?.toFloatOrNull() ?: 1.1f).coerceIn(1.01f, 1.5f)
+        val buffered = player.totalBufferedDuration
+        if (!catchingUp) {
+            if (player.isPlaying && player.playbackParameters.speed == 1f && offset >= startMs && buffered >= CATCH_UP_MIN_BUFFER_START_MS) {
+                player.setPlaybackSpeed(speed)
+                catchingUp = true
+            }
+        } else if (!player.isPlaying || offset <= stopMs || buffered < CATCH_UP_MIN_BUFFER_KEEP_MS) {
+            stopCatchUp()
+        }
+        return if (catchingUp) speed else null
+    }
+
+    private fun stopCatchUp() {
+        if (catchingUp) {
+            catchingUp = false
+            playbackService?.player?.setPlaybackSpeed(1f)
+        }
+    }
+
+    override fun getProxyHost(): String? = playbackService?.currentProxyHost()
+
+    override fun isProxyExcluded(): Boolean = playbackService?.isProxyExcluded() == true
+
+    override fun setProxyExcluded(excluded: Boolean) {
+        stopCatchUp()
+        playbackService?.setProxyExcluded(excluded)
+    }
+
+    override fun getChannelLogin(): String? = playbackService?.channelLogin
+
     override fun getLiveOffset(): Long? {
         val player = playbackService?.player ?: return null
         if (!player.isCurrentMediaItemLive) return null
@@ -603,5 +655,11 @@ class ExoPlayerFragment : PlayerFragment() {
         if (playbackService?.type != BasePlaybackService.STREAM && isResumed) {
             playbackService?.stop()
         }
+    }
+
+    companion object {
+        /** Video that must be loaded ahead to start / keep catching up (milliseconds). */
+        private const val CATCH_UP_MIN_BUFFER_START_MS = 800L
+        private const val CATCH_UP_MIN_BUFFER_KEEP_MS = 400L
     }
 }

@@ -147,6 +147,11 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
     open fun getCurrentVolume(): Float? = null
     open fun getTotalDuration(): Long? = null
     open fun getLiveOffset(): Long? = null
+    open fun updateLiveCatchUp(): Float? = null
+    open fun getProxyHost(): String? = null
+    open fun isProxyExcluded(): Boolean = false
+    open fun setProxyExcluded(excluded: Boolean) {}
+    open fun getChannelLogin(): String? = null
     open fun playPause() {}
     open fun rewind() {}
     open fun fastForward() {}
@@ -2423,22 +2428,55 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
         if (isMaximized) {
             showTvController()
         }
+        binding.playerControls.proxyStatus.setOnClickListener { toggleProxyForChannel() }
         binding.playerControls.root.post(latencyUpdater)
     }
 
     // Shows how far behind live the stream is (refreshed every second) next to the bottom buttons
+    // Every half second: catch-up speed control, delay readout and proxy indicator
     private val latencyUpdater = object : Runnable {
         override fun run() {
             val controls = _binding?.playerControls ?: return
-            val offset = if (playbackService?.type == BasePlaybackService.STREAM) getLiveOffset() else null
+            val isStream = playbackService?.type == BasePlaybackService.STREAM
+            val catchUpSpeed = if (isStream) updateLiveCatchUp() else null
+            val offset = if (isStream) getLiveOffset() else null
             if (offset != null) {
-                controls.latency.text = getString(R.string.tv_stream_delay, offset / 1000f)
+                controls.latency.text = if (catchUpSpeed != null) {
+                    getString(R.string.tv_stream_delay_catching_up, offset / 1000f, catchUpSpeed)
+                } else {
+                    getString(R.string.tv_stream_delay, offset / 1000f)
+                }
                 controls.latency.visibility = View.VISIBLE
             } else {
                 controls.latency.visibility = View.GONE
             }
-            controls.root.postDelayed(this, 1000)
+            if (isStream) {
+                val host = getProxyHost()
+                controls.proxyStatus.text = when {
+                    host != null -> getString(R.string.tv_proxy_on, host)
+                    isProxyExcluded() -> getString(R.string.tv_proxy_excluded)
+                    else -> getString(R.string.tv_proxy_off)
+                }
+                controls.proxyStatus.setTextColor(if (host != null) 0xFFFFB74D.toInt() else 0xFF81C784.toInt())
+                controls.proxyStatus.visibility = View.VISIBLE
+            } else {
+                controls.proxyStatus.visibility = View.GONE
+            }
+            controls.root.postDelayed(this, 500)
         }
+    }
+
+    /** OK on the proxy indicator: never / again use a proxy for this channel. */
+    private fun toggleProxyForChannel() {
+        val channel = getChannelLogin() ?: return
+        val exclude = !isProxyExcluded()
+        setProxyExcluded(exclude)
+        Toast.makeText(
+            requireContext(),
+            getString(if (exclude) R.string.tv_proxy_excluded_toast else R.string.tv_proxy_included_toast, channel),
+            Toast.LENGTH_LONG
+        ).show()
+        showController(force = true)
     }
 
     private fun updateTvFocusState() {

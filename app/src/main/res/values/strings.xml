@@ -603,6 +603,16 @@
     <string name="tv_live_preview_sound">Live preview sound</string>
     <string name="tv_stream_playing">Playing %1$s</string>
     <string name="tv_stream_since">Since %1$s for %2$s</string>
+    <string name="tv_stream_delay_catching_up">Delay: %1$.1fs · catching up %2$.2fx</string>
+    <string name="tv_proxy_on">● Proxy: %1$s</string>
+    <string name="tv_proxy_off">● No proxy</string>
+    <string name="tv_proxy_excluded">● No proxy (always for this channel)</string>
+    <string name="tv_proxy_excluded_toast">Proxy turned off for %1$s, now and next time. Reloading the stream…</string>
+    <string name="tv_proxy_included_toast">Proxy turned back on for %1$s. Reloading the stream…</string>
+    <string name="tv_live_catch_up">Catch up when behind live</string>
+    <string name="tv_live_catch_up_start">Start catching up at (seconds of delay)</string>
+    <string name="tv_live_catch_up_stop">Stop catching up at (seconds of delay)</string>
+    <string name="tv_live_catch_up_speed">Catch-up speed</string>
     <string name="tv_stream_delay">Delay: %1$.1fs</string>
     <string name="tv_login_title">Log in with your phone</string>
     <string name="tv_login_steps">1. Scan the QR code with your phone camera\n2. Log in to Twitch and tap Activate\n3. This screen logs you in automatically</string>

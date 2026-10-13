@@ -78,6 +78,7 @@ import com.github.andreyasadchy.xtra.util.MediaButtonReceiver
 import com.github.andreyasadchy.xtra.util.NetworkUtils
 import com.github.andreyasadchy.xtra.util.NetworkUtils.executeAsync
 import com.github.andreyasadchy.xtra.util.TwitchApiHelper
+import com.github.andreyasadchy.xtra.util.isTv
 import com.github.andreyasadchy.xtra.util.prefs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -759,6 +760,11 @@ class ExoPlayerService : BasePlaybackService() {
                             useStreamProxy = prefs().getBoolean(C.PLAYER_USE_STREAM_PROXY, false)
                         }
                     }
+                    if (isProxyExcluded()) {
+                        // Channel set to "No proxy" from the player (e.g. a channel you're subscribed to)
+                        useCustomProxy = false
+                        useStreamProxy = false
+                    }
                     if (useCustomProxy) {
                         customProxyList = xtraModule.playerRepository.getCustomProxies().filter {
                             it.enabled && !it.url.isNullOrBlank()
@@ -1209,8 +1215,14 @@ class ExoPlayerService : BasePlaybackService() {
                                 setUri(url.toUri())
                                 setMimeType(MimeTypes.APPLICATION_M3U8)
                                 setLiveConfiguration(MediaItem.LiveConfiguration.Builder().apply {
-                                    prefs().getString(C.PLAYER_LIVE_MIN_SPEED, "")?.toFloatOrNull()?.let { setMinPlaybackSpeed(it) }
-                                    prefs().getString(C.PLAYER_LIVE_MAX_SPEED, "")?.toFloatOrNull()?.let { setMaxPlaybackSpeed(it) }
+                                    if (tvCatchUpEnabled()) {
+                                        // Xtra TV's own catch-up sets the speed; keep the built-in speed nudging off
+                                        setMinPlaybackSpeed(1f)
+                                        setMaxPlaybackSpeed(1f)
+                                    } else {
+                                        prefs().getString(C.PLAYER_LIVE_MIN_SPEED, "")?.toFloatOrNull()?.let { setMinPlaybackSpeed(it) }
+                                        prefs().getString(C.PLAYER_LIVE_MAX_SPEED, "")?.toFloatOrNull()?.let { setMaxPlaybackSpeed(it) }
+                                    }
                                     prefs().getString(C.PLAYER_LIVE_TARGET_OFFSET, "2000")?.toLongOrNull()?.let { setTargetOffsetMs(it) }
                                 }.build())
                             }.build()
@@ -2046,8 +2058,13 @@ class ExoPlayerService : BasePlaybackService() {
                             setUri(url.toUri())
                             setMimeType(MimeTypes.APPLICATION_M3U8)
                             setLiveConfiguration(MediaItem.LiveConfiguration.Builder().apply {
-                                prefs().getString(C.PLAYER_LIVE_MIN_SPEED, "")?.toFloatOrNull()?.let { setMinPlaybackSpeed(it) }
-                                prefs().getString(C.PLAYER_LIVE_MAX_SPEED, "")?.toFloatOrNull()?.let { setMaxPlaybackSpeed(it) }
+                                if (tvCatchUpEnabled()) {
+                                    setMinPlaybackSpeed(1f)
+                                    setMaxPlaybackSpeed(1f)
+                                } else {
+                                    prefs().getString(C.PLAYER_LIVE_MIN_SPEED, "")?.toFloatOrNull()?.let { setMinPlaybackSpeed(it) }
+                                    prefs().getString(C.PLAYER_LIVE_MAX_SPEED, "")?.toFloatOrNull()?.let { setMaxPlaybackSpeed(it) }
+                                }
                                 prefs().getString(C.PLAYER_LIVE_TARGET_OFFSET, "2000")?.toLongOrNull()?.let { setTargetOffsetMs(it) }
                             }.build())
                         }.build()
@@ -2159,6 +2176,65 @@ class ExoPlayerService : BasePlaybackService() {
             }
             (player?.currentManifest as? HlsManifest)?.multivariantPlaylist?.tags?.toTypedArray()
         }?.joinToString("\n")
+    }
+
+    // Xtra TV: live catch-up and per-channel proxy exclusion
+
+    fun tvCatchUpEnabled(): Boolean = isTv() && prefs().getBoolean(TV_CATCH_UP, true)
+
+    fun isProxyExcluded(): Boolean {
+        val login = channelLogin?.lowercase() ?: return false
+        return prefs().getStringSet(TV_PROXY_EXCLUDED, emptySet())?.contains(login) == true
+    }
+
+    /** Address of the proxy the current stream is going through right now, or null if it's direct from Twitch. */
+    fun currentProxyHost(): String? {
+        if (type != STREAM) return null
+        if (useCustomProxy) {
+            return customProxyList?.getOrNull(currentCustomProxy)?.url?.let { it.toUri().host ?: "https://$it".toUri().host }
+        }
+        if (useStreamProxy) {
+            val proxy = streamProxyList?.getOrNull(currentStreamProxy) ?: return null
+            if (proxy.proxyPlaybackAccessToken || proxy.proxyMultivariantPlaylist || proxyMediaPlaylist) {
+                return proxy.host
+            }
+        }
+        return null
+    }
+
+    /** Turns proxies off (or back on) for the current channel, remembers it, and reloads the stream. */
+    fun setProxyExcluded(excluded: Boolean) {
+        val login = channelLogin?.lowercase() ?: return
+        val set = HashSet(prefs().getStringSet(TV_PROXY_EXCLUDED, emptySet()) ?: emptySet())
+        if (excluded) set.add(login) else set.remove(login)
+        prefs().edit { putStringSet(TV_PROXY_EXCLUDED, set) }
+        lifecycleScope.launch {
+            if (excluded) {
+                useCustomProxy = false
+                useStreamProxy = false
+            } else {
+                currentCustomProxy = 0
+                currentStreamProxy = 0
+                useCustomProxy = prefs().getBoolean(C.PLAYER_USE_CUSTOM_PROXY, true)
+                useStreamProxy = !useCustomProxy && prefs().getBoolean(C.PLAYER_USE_STREAM_PROXY, false)
+                if (useCustomProxy) {
+                    customProxyList = xtraModule.playerRepository.getCustomProxies().filter {
+                        it.enabled && !it.url.isNullOrBlank()
+                    }.sortedBy { it.position }
+                }
+                if (useStreamProxy) {
+                    streamProxyList = xtraModule.playerRepository.getStreamProxies().filter {
+                        it.enabled && !it.host.isNullOrBlank() && it.port != null
+                                && (it.proxyPlaybackAccessToken || it.proxyMultivariantPlaylist || it.proxyMediaPlaylist)
+                    }.sortedBy { it.position }
+                }
+            }
+            proxyMediaPlaylist = false
+            if (secondaryPlayer != null) {
+                stopSecondaryPlayer()
+            }
+            loadStream(restart = true)
+        }
     }
 
     fun restartPlayer() {
@@ -2798,6 +2874,11 @@ class ExoPlayerService : BasePlaybackService() {
     }
 
     companion object {
+        const val TV_CATCH_UP = "tv_live_catch_up"
+        const val TV_CATCH_UP_START = "tv_live_catch_up_start"
+        const val TV_CATCH_UP_STOP = "tv_live_catch_up_stop"
+        const val TV_CATCH_UP_SPEED = "tv_live_catch_up_speed"
+        const val TV_PROXY_EXCLUDED = "tv_proxy_excluded_channels"
         const val MULTIVARIANT_PLAYLIST_REGEX = "^usher\\.ttvnw\\.net$"
         const val MEDIA_PLAYLIST_REGEX = "^(?:[a-z0-9-]+\\.playlist\\.(?:live-video|ttvnw)\\.net|video-weaver\\.[a-z0-9-]+\\.hls\\.ttvnw\\.net)$"
 
