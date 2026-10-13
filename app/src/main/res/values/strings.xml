@@ -598,6 +598,7 @@
     <string name="stopping_proxy">Stopping proxy</string>
     <string name="tv_settings_hold_tip">Tip: hold OK on a setting to see what it does</string>
     <string name="tv_setting_no_description">No description for this setting yet.</string>
+    <string name="tv_back_closes_player">Back button closes the stream</string>
     <string name="tv_live_preview">Live preview of the selected stream</string>
     <string name="tv_live_preview_sound">Live preview sound</string>
     <string name="tv_stream_playing">Playing %1$s</string>

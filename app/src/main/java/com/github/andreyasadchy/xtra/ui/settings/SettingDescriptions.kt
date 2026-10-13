@@ -129,6 +129,7 @@ object SettingDescriptions {
         "chat_disable" to "Turns chat off completely. Streams play without connecting to chat.",
 
         // Player
+        "tv_back_closes_player" to "Pressing Back while watching closes the stream and takes you back to the list. Off = Back shrinks the stream into a small window in the corner, like the original Xtra. (If the player controls are showing, the first Back just hides them.)",
         "player_disable_background_video" to "When the app is in the background with audio playing, stops decoding the video to save resources.",
         "player_use_background_audio_track" to "When the app goes to the background, switches the stream to its audio-only version to save data.",
         "player_background_audio_pip_closed" to "When you close the floating Picture-in-Picture window, keep the sound playing.",

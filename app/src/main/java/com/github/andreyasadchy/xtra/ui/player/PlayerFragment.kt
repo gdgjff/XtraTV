@@ -132,7 +132,13 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
 
     private val backPressedCallback = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
-            minimize()
+            // TV: Back closes the stream (unless turned off in Player settings) instead of minimizing it
+            if (tvMode && requireContext().prefs().getBoolean(KEY_TV_BACK_CLOSES, true)) {
+                close()
+                (activity as? MainActivity)?.closePlayer()
+            } else {
+                minimize()
+            }
         }
     }
 
@@ -2556,5 +2562,6 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
         private const val REQUEST_CODE_AUDIO_ONLY = 2
         private const val REQUEST_CODE_PLAY_PAUSE = 3
         const val KEY_OFFLINE = "offline"
+        private const val KEY_TV_BACK_CLOSES = "tv_back_closes_player"
     }
 }

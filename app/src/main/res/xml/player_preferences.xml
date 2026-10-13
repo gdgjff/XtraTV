@@ -3,6 +3,13 @@
 
     <SwitchPreferenceCompat
         android:defaultValue="true"
+        android:key="tv_back_closes_player"
+        android:title="@string/tv_back_closes_player"
+        app:iconSpaceReserved="false"
+        app:singleLineTitle="false" />
+
+    <SwitchPreferenceCompat
+        android:defaultValue="true"
         android:key="player_disable_background_video"
         android:title="@string/disable_background_video"
         app:iconSpaceReserved="false"

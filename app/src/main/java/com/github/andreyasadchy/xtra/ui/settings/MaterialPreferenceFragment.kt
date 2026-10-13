@@ -26,7 +26,7 @@ import com.github.andreyasadchy.xtra.util.prefs
 private const val KEY_TV_HOLD_TIP_SHOWN = "tv_settings_hold_tip_shown"
 
 /** Settings that only exist on the Android TV version. */
-private val TV_ONLY_SETTINGS = listOf("tv_live_preview", "tv_live_preview_sound")
+private val TV_ONLY_SETTINGS = listOf("tv_live_preview", "tv_live_preview_sound", "tv_back_closes_player")
 
 /** Settings that only matter on phones (notches, portrait, mobile data, touch, screen lock). */
 private val TV_HIDDEN_SETTINGS = listOf(
