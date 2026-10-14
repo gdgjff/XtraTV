@@ -316,23 +316,6 @@
             tools:text="Delay: 3.4s"
             tools:visibility="visible" />
 
-        <!-- TV: is this stream going through a proxy? OK toggles "no proxy" for the channel -->
-        <TextView
-            android:id="@+id/proxyStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="34dp"
-            android:layout_gravity="center_vertical"
-            android:layout_marginStart="10dp"
-            android:background="@drawable/tv_player_pill_bg"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:visibility="gone"
-            tools:text="Proxy on"
-            tools:visibility="visible" />
 
     </LinearLayout>
 
@@ -344,6 +327,24 @@
         android:layout_alignParentEnd="true"
         android:layout_marginEnd="10dp"
         android:layout_marginBottom="5dp">
+
+        <!-- TV: is this stream going through a proxy? OK toggles "no proxy" for the channel -->
+        <TextView
+            android:id="@+id/proxyStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginEnd="10dp"
+            android:background="@drawable/tv_player_pill_bg"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:text="Proxy on"
+            tools:visibility="visible" />
 
         <ImageButton
             android:id="@+id/subtitles"
