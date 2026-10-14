@@ -2453,11 +2453,11 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
             if (isStream) {
                 val host = getProxyHost()
                 controls.proxyStatus.text = when {
-                    host != null -> getString(R.string.tv_proxy_on, host)
+                    host != null -> getString(R.string.tv_proxy_on)
                     isProxyExcluded() -> getString(R.string.tv_proxy_excluded)
                     else -> getString(R.string.tv_proxy_off)
                 }
-                controls.proxyStatus.setTextColor(if (host != null) 0xFFFFB74D.toInt() else 0xFF81C784.toInt())
+                controls.proxyStatus.setTextColor(if (host != null) 0xFF81C784.toInt() else 0xFFE57373.toInt()) // on = green, off = red
                 controls.proxyStatus.visibility = View.VISIBLE
             } else {
                 controls.proxyStatus.visibility = View.GONE

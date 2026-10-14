@@ -331,7 +331,7 @@
             android:textSize="14sp"
             android:textStyle="bold"
             android:visibility="gone"
-            tools:text="● Proxy: lb-eu4.cdn-perfprod.com"
+            tools:text="Proxy on"
             tools:visibility="visible" />
 
     </LinearLayout>
