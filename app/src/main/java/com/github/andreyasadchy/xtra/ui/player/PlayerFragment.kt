@@ -148,6 +148,7 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
     open fun getTotalDuration(): Long? = null
     open fun getLiveOffset(): Long? = null
     open fun updateLiveCatchUp(): Float? = null
+    open fun isAtLiveEdge(): Boolean = false
     open fun getProxyHost(): String? = null
     open fun isProxyExcluded(): Boolean = false
     open fun setProxyExcluded(excluded: Boolean) {}
@@ -2441,11 +2442,12 @@ abstract class PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFragment
             val catchUpSpeed = if (isStream) updateLiveCatchUp() else null
             val offset = if (isStream) getLiveOffset() else null
             if (offset != null) {
-                controls.latency.text = if (catchUpSpeed != null) {
-                    getString(R.string.tv_stream_delay_catching_up, offset / 1000f, catchUpSpeed)
-                } else {
-                    getString(R.string.tv_stream_delay, offset / 1000f)
+                controls.latency.text = when {
+                    catchUpSpeed != null -> getString(R.string.tv_stream_delay_catching_up, offset / 1000f, catchUpSpeed)
+                    isAtLiveEdge() -> getString(R.string.tv_stream_delay_live_edge, offset / 1000f)
+                    else -> getString(R.string.tv_stream_delay, offset / 1000f)
                 }
+                controls.latency.setTextColor(if (isAtLiveEdge()) 0xFF81C784.toInt() else 0xFFFFFFFF.toInt()) // live edge = green (same green as "proxy on")
                 controls.latency.visibility = View.VISIBLE
             } else {
                 controls.latency.visibility = View.GONE

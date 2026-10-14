@@ -205,7 +205,7 @@ object SettingDescriptions {
         "player_buffer_playback" to "How much video must be loaded before playback starts (milliseconds). Lower starts faster but may stutter. Default 2000 = 2 seconds.",
         "player_buffer_rebuffer" to "How much video must be loaded to resume after the stream stalled (milliseconds). Default 2000 = 2 seconds.",
         "tv_live_catch_up" to "When the stream falls behind live, plays it slightly faster until it catches up, then back to normal speed. It only speeds up when enough video is loaded ahead, so it doesn't cause buffering. Voices keep their normal pitch. While it's on, \"Live minimum/maximum speed\" below are ignored.",
-        "tv_live_catch_up_start" to "Delay (seconds) at which the stream starts playing faster. Default 2.5. Shown on the player as \"Delay\".",
+        "tv_live_catch_up_start" to "Delay (seconds) at which the stream starts playing faster. Default 2.5. Shown on the player as \"Delay\". Only speeds up while at least 0.8 s of video is loaded ahead, so it never causes buffering. If the delay is above this value but less is loaded, you're already as close to live as the stream allows, and the delay shows 'live edge'.",
         "tv_live_catch_up_stop" to "Delay (seconds) at which it goes back to normal speed. Must be lower than the start value. Default 2.0.",
         "tv_live_catch_up_speed" to "How fast to play while catching up. 1.1 = 10% faster. Between 1.01 and 1.5; higher catches up quicker but is more noticeable.",
         "player_live_min_speed" to "To catch up or slow down on live streams, the player can change speed slightly. This is the slowest it may go (e.g. 0.97). Empty = player default.",

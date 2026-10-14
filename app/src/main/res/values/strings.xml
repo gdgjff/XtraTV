@@ -613,6 +613,7 @@
     <string name="tv_live_catch_up_start">Start catching up at (seconds of delay)</string>
     <string name="tv_live_catch_up_stop">Stop catching up at (seconds of delay)</string>
     <string name="tv_live_catch_up_speed">Catch-up speed</string>
+    <string name="tv_stream_delay_live_edge">Delay: %1$.1fs · live edge</string>
     <string name="tv_stream_delay">Delay: %1$.1fs</string>
     <string name="tv_login_title">Log in with your phone</string>
     <string name="tv_login_steps">1. Scan the QR code with your phone camera\n2. Log in to Twitch and tap Activate\n3. This screen logs you in automatically</string>

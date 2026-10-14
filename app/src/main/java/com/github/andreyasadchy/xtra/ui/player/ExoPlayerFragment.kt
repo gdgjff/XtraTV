@@ -354,18 +354,52 @@ class ExoPlayerFragment : PlayerFragment() {
 
     private var catchingUp = false
 
+    // Live offset correction for broadcasts stamped ahead of real time (handoff from Xtra-Web)
+    /** (elapsedRealtime ms, skew ms): how far the newest loaded video's stamp is ahead of now */
+    private val liveSkews = ArrayDeque<Pair<Long, Long>>()
+    private var skewChannel: String? = null
+    private var correctedOffset: Long? = null
+    private var atLiveEdge = false
+
+    /** currentLiveOffset, plus the amount the stream's timestamps run ahead of real time (max over 20 s). */
+    private fun correctedLiveOffset(player: androidx.media3.common.Player): Long? {
+        val raw = player.currentLiveOffset.takeIf { it != androidx.media3.common.C.TIME_UNSET } ?: return null
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (player.playbackState == Player.STATE_READY) {
+            // Offset of the newest loaded frame = raw - buffered. Below 0 means it's stamped in the future.
+            val skew = player.totalBufferedDuration - raw
+            if (skew in -30_000L..10_000L) liveSkews.addLast(now to skew)
+        }
+        while (liveSkews.isNotEmpty() && now - liveSkews.first().first > 20_000L) liveSkews.removeFirst()
+        val excess = (liveSkews.maxOfOrNull { it.second } ?: 0L).coerceAtLeast(0L)
+        return (raw + excess).takeIf { it in 0L..120_000L }
+    }
+
     /**
      * Xtra TV catch-up: speeds up to the set speed when the delay reaches the "start" value, back to
      * normal at the "stop" value. Only speeds up when enough video is loaded ahead, so it never causes buffering.
      * Returns the catch-up speed while catching up, null otherwise.
      */
     override fun updateLiveCatchUp(): Float? {
-        val service = playbackService ?: return null
-        val player = service.player ?: return null
+        val service = playbackService
+        val player = service?.player
+        if (service == null || player == null || service.type != BasePlaybackService.STREAM || !player.isCurrentMediaItemLive) {
+            // Not a live stream (or switched to a VOD): the skew is per broadcast
+            liveSkews.clear()
+            correctedOffset = null
+            stopCatchUp()
+            return null
+        }
+        if (service.channelLogin != skewChannel) {
+            // Different channel: don't carry the previous broadcast's skew over
+            liveSkews.clear()
+            skewChannel = service.channelLogin
+        }
+        // Corrected delay, used by both the readout (getLiveOffset) and catch-up
+        val offset = correctedLiveOffset(player)
+        correctedOffset = offset
         val prefs = requireContext().prefs()
-        val active = service.tvCatchUpEnabled() && service.type == BasePlaybackService.STREAM &&
-                player.isCurrentMediaItemLive && service.secondaryPlayer == null
-        val offset = player.currentLiveOffset.takeIf { it != androidx.media3.common.C.TIME_UNSET && it >= 0 }
+        val active = service.tvCatchUpEnabled() && service.secondaryPlayer == null
         if (!active || offset == null) {
             stopCatchUp()
             return null
@@ -383,10 +417,16 @@ class ExoPlayerFragment : PlayerFragment() {
         } else if (!player.isPlaying || offset <= stopMs || buffered < CATCH_UP_MIN_BUFFER_KEEP_MS) {
             stopCatchUp()
         }
+        // Above "start" but too little loaded to speed up: already as close to live as the stream allows
+        atLiveEdge = !catchingUp && player.isPlaying && player.playbackParameters.speed == 1f &&
+                offset >= startMs && buffered < CATCH_UP_MIN_BUFFER_START_MS
         return if (catchingUp) speed else null
     }
 
+    override fun isAtLiveEdge() = atLiveEdge
+
     private fun stopCatchUp() {
+        atLiveEdge = false
         if (catchingUp) {
             catchingUp = false
             playbackService?.player?.setPlaybackSpeed(1f)
@@ -404,11 +444,11 @@ class ExoPlayerFragment : PlayerFragment() {
 
     override fun getChannelLogin(): String? = playbackService?.channelLogin
 
+    /** The corrected delay computed by updateLiveCatchUp() (called just before this, every 500 ms). */
     override fun getLiveOffset(): Long? {
         val player = playbackService?.player ?: return null
         if (!player.isCurrentMediaItemLive) return null
-        val offset = player.currentLiveOffset
-        return if (offset != androidx.media3.common.C.TIME_UNSET && offset >= 0) offset else null
+        return correctedOffset
     }
 
     override fun playPause() {
